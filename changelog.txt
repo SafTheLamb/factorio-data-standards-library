@@ -1,0 +1,6 @@
+---------------------------------------------------------------------------------------------------
+Version: 0.1.0
+  Major Features:
+    - Functions for modifying Recipe prototypes
+    - Functions for modifying Technology prototypes
+    - Fancy mutator functions that are sometimes handy
