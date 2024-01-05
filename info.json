@@ -1,0 +1,12 @@
+{
+  "name": "fds",
+  "title": "Factorio Data Standards Library",
+  "description": "A handful of helpful functions for modders changing prototypes during the data stage.",
+  "author": "SafTheLamb",
+  "version": "1.0.0",
+  "factorio_version": "1.1",
+  "homepage": "https://github.com/sapphiriza/factorio-data-standards-library",
+  "dependencies": [
+      "base >= 1.1.87"
+  ]
+}
