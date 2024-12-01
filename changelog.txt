@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.1.1
+  Minor Features:
+    - Add fds_recipe.change_time
+    - Fix formatting for assert messages
+
+---------------------------------------------------------------------------------------------------
 Version: 0.1.0
   Major Features:
     - Functions for modifying Recipe prototypes
