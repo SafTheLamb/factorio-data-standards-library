@@ -49,6 +49,7 @@ end
 --  ingredient_name (ItemID or FluidID string): Name of the ingredient.
 --  modifiers (dictionary): Map of values to change. e.g. {amount=0, min_temperature=9999}
 function fds_recipe.modify_ingredient(recipe_name, ingredient_name, modifiers)
+  assert(type(modifiers) == "table")
   local ingredient = fds_recipe.get_ingredient(recipe_name, ingredient_name)
   assert(ingredient or not FDS_ASSERT, string.format("fds_recipe.modify_ingredient: recipe `%s` does not have ingredient `%s`.", recipe_name, ingredient_name))
   if ingredient then
@@ -163,7 +164,7 @@ end
 --  result_name (ItemID or FluidID string): Name of the result.
 --  modifiers (dictionary of ProductPrototype values): Map of values to change. e.g. {amount=0, amount_min=0, amount_max=10}
 function fds_recipe.modify_result(recipe_name, result_name, modifiers)
-  assert(type(modifiers) == "table", string.format("fds_recipe.modify_result: modifiers for `%s` must be a keyval map of variable names to new values"))
+  assert(type(modifiers) == "table")
   local result = fds_recipe.get_result(recipe_name, result_name)
   assert(result or not FDS_ASSERT, string.format("fds_recipe.modify_result: recipe `%s` does not have result `%s`.", recipe_name, result_name))
   if result then
@@ -185,8 +186,8 @@ function fds_recipe.scale_result(recipe_name, result_name, scalars)
   end
 end
 
--- Adds the provided result to the given recipe.
---  recipe_name (RecipeID string): Name of the recipe, (eg "iron-gear-wheel"). Nothing happens if the recipe is not defined. Will assert if FDS_ASSERT is true.
+--- Replaces.
+-- @param1 recipe_name (RecipeID string): Name of the recipe, (eg "iron-gear-wheel"). Nothing happens if the recipe is not defined. Will assert if FDS_ASSERT is true.
 --  old_result_name (ItemID or FluidID string): Name of result to replace (eg "iron-plate")
 --  new_result (string OR table): Result to replace with. If an ResultPrototype is provided, replaces the whole thing. If a string, changes the result name.
 --  allow_combine (optional, boolean): If false, will assert if an existing result conflicts with new_result. If FDS_ASSERT is set, allow_combine must be true to avoid assert.
@@ -247,5 +248,31 @@ function fds_recipe.change_time(recipe_name, modifiers)
     recipe.energy_required = energy_required
   end
 end
+
+-------------------------------------------------------------------------- Shared
+
+local fds_shared = require("__fdsl__.lib.shared")
+
+function fds_recipe.get_surface_condition(recipe_name, property_name)
+  local recipe = data.raw.recipe[recipe_name]
+  return recipe and fds_shared.get_surface_condition(recipe, property_name) or nil
+end
+
+function fds_recipe.set_surface_condition(recipe_name, new_property)
+  local recipe = data.raw.recipe[recipe_name]
+  if recipe then
+    fds_shared.set_surface_condition(recipe, new_property)
+  end
+end
+
+function fds_recipe.remove_surface_condition(recipe_name, property_name)
+  local recipe = data.raw.recipe[recipe_name]
+  if recipe then
+    return fds_shared.remove_surface_condition(recipe, property_name)
+  end
+  return false
+end
+
+--------------------------------------------------------------------------
 
 return fds_recipe

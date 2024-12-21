@@ -1,4 +1,15 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.1.4
+  Changes:
+    - Fix assert formatting
+
+---------------------------------------------------------------------------------------------------
+Version: 0.1.3
+  Changes:
+    - Add helper functions for editing surface conditions (if you don't own SA, the functions will no-op)
+    - Add helper functions for editing resistances
+
+---------------------------------------------------------------------------------------------------
 Version: 0.1.2
   Changes:
     - Remove dependency on the base mod

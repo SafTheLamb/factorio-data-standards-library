@@ -105,4 +105,6 @@ function fds_technology.remove_cost_ingredient(tech_name, pack_name)
   end
 end
 
+--------------------------------------------------------------------------
+
 return fds_technology
