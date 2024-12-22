@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.1.5
+  Minor Features:
+    - Add functions for finding recipes
+  Changes:
+    - Recipe functions that modify an ingredient or result now return it after modifying
+
+---------------------------------------------------------------------------------------------------
 Version: 0.1.4
   Changes:
     - Fix assert formatting

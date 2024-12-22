@@ -1,5 +1,44 @@
 local fds_recipe = {}
 
+-------------------------------------------------------------------------- General
+
+function fds_recipe.find(recipe_name, required)
+  for _,recipe in pairs(data.raw.recipe) do
+    if recipe.name == recipe_name then
+      return recipe
+    end
+  end
+  assert(not required, string.format("fds_recipe.find: Required recipe `%s` is missing.", recipe_name))
+end
+
+function fds_recipe.find_by_ingredient(ingredient_name)
+  local matches = {}
+  for _,recipe in pairs(data.raw.recipe) do
+    if #recipe.ingredients > 0 then
+      for _,ingredient in pairs(recipe.ingredients) do
+        if ingredient.name == ingredient_name then
+          table.insert(matches, recipe.name)
+        end
+      end
+    end
+  end
+  return matches
+end
+
+function fds_recipe.find_by_result(result_name)
+  local matches = {}
+  for _,recipe in pairs(data.raw.recipe) do
+    if #recipe.results > 0 then
+      for _,result in pairs(recipe.results) do
+        if result.name == result_name then
+          table.insert(matches, recipe.name)
+        end
+      end
+    end
+  end
+  return matches
+end
+
 -------------------------------------------------------------------------- Ingredients
 
 -- Gets the ingredient from the recipe, if it exists.
@@ -155,6 +194,7 @@ function fds_recipe.add_result(recipe_name, new_result, allow_combine, new_index
       else
         table.insert(recipe.results, new_result)
       end
+      return result
     end
   end
 end
@@ -170,6 +210,7 @@ function fds_recipe.modify_result(recipe_name, result_name, modifiers)
   if result then
     for key,val in pairs(modifiers) do
       result[key] = val
+      return result
     end
   end
 end
@@ -182,6 +223,7 @@ function fds_recipe.scale_result(recipe_name, result_name, scalars)
       assert(type(scalar) == "number")
       assert(type(result[key]) == "number" or not FDS_ASSERT)
       result[key] = result[key] * scalar
+      return result
     end
   end
 end
@@ -203,11 +245,14 @@ function fds_recipe.replace_result(recipe_name, old_result_name, new_result, all
     if conflict then
       assert(allow_combine ~= false and (allow_combine == true or not FDS_ASSERT), string.format("fds_recipe.replace_result: recipe `%s` has a conflicting result `%s` that already exists", recipe_name, conflict.name))
       conflict.amount = conflict.amount + (is_full_replace and new_result.amount or old_result.amount)
+      return conflict
     else
       if is_full_replace then
         recipe.results[old_index] = new_result
+        return new_result
       else
         old_result.name = new_result
+        return old_result
       end
     end
   end
