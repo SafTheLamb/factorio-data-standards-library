@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.1.6
+  Changes:
+    - Invert allow_combine argument for replace_X() functions into no_combine
+  Bugfixes:
+    - Fix wrong assert
+
+---------------------------------------------------------------------------------------------------
 Version: 0.1.5
   Minor Features:
     - Add functions for finding recipes

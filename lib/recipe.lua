@@ -115,7 +115,7 @@ end
 --  old_ingredient_name (ItemID or FluidID string): Name of ingredient to replace (eg "iron-plate")
 --  new_ingredient (string or IngredientPrototype): Ingredient to replace with. If an IngredientPrototype is provided, replaces the whole thing. If a string, changes the ingredient name.
 --  allow_combine (optional, boolean): If false, will assert if an existing ingredient conflicts with new_ingredient. If FDS_ASSERT is set, allow_combine must be true to avoid assert.
-function fds_recipe.replace_ingredient(recipe_name, old_ingredient_name, new_ingredient, allow_combine)
+function fds_recipe.replace_ingredient(recipe_name, old_ingredient_name, new_ingredient, no_combine)
   local recipe = data.raw.recipe[recipe_name]
   assert(recipe or not FDS_ASSERT, string.format("fds_recipe.replace_ingredient: recipe `%s` does not exist.", recipe_name))
   if recipe then
@@ -126,7 +126,7 @@ function fds_recipe.replace_ingredient(recipe_name, old_ingredient_name, new_ing
     local conflict = fds_recipe.get_ingredient(recipe_name, is_full_replace and new_ingredient.name or new_ingredient)
 
     if conflict then
-      assert(allow_combine ~= false and (allow_combine == true or not FDS_ASSERT), "fds_recipe.replace_ingredient: recipe `%s` has a conflicting ingredient `%s` that already exists.", recipe_name, conflict.name)
+      assert(no_combine ~= true and (no_combine == false or not FDS_ASSERT), "fds_recipe.replace_ingredient: recipe `%s` has a conflicting ingredient `%s` that already exists.", recipe_name, conflict.name)
       conflict.amount = conflict.amount + (is_full_replace and new_ingredient.amount or old_ingredient.amount)
     else
       if is_full_replace then
@@ -232,8 +232,8 @@ end
 -- @param1 recipe_name (RecipeID string): Name of the recipe, (eg "iron-gear-wheel"). Nothing happens if the recipe is not defined. Will assert if FDS_ASSERT is true.
 --  old_result_name (ItemID or FluidID string): Name of result to replace (eg "iron-plate")
 --  new_result (string OR table): Result to replace with. If an ResultPrototype is provided, replaces the whole thing. If a string, changes the result name.
---  allow_combine (optional, boolean): If false, will assert if an existing result conflicts with new_result. If FDS_ASSERT is set, allow_combine must be true to avoid assert.
-function fds_recipe.replace_result(recipe_name, old_result_name, new_result, allow_combine)
+--  no_combine (optional, boolean): If false, will assert if an existing result conflicts with new_result. If FDS_ASSERT is set, allow_combine must be true to avoid assert.
+function fds_recipe.replace_result(recipe_name, old_result_name, new_result, no_combine)
   local recipe = data.raw.recipe[recipe_name]
   if recipe then
     local old_result,old_index = fds_recipe.get_result(recipe_name, old_result_name)
@@ -243,7 +243,7 @@ function fds_recipe.replace_result(recipe_name, old_result_name, new_result, all
     local conflict = fds_recipe.get_result(recipe_name, is_full_replace and new_result.name or new_result)
 
     if conflict then
-      assert(allow_combine ~= false and (allow_combine == true or not FDS_ASSERT), string.format("fds_recipe.replace_result: recipe `%s` has a conflicting result `%s` that already exists", recipe_name, conflict.name))
+      assert(no_combine ~= true and (no_combine == false or not FDS_ASSERT), string.format("fds_recipe.replace_result: recipe `%s` has a conflicting result `%s` that already exists", recipe_name, conflict.name))
       conflict.amount = conflict.amount + (is_full_replace and new_result.amount or old_result.amount)
       return conflict
     else
@@ -271,7 +271,7 @@ function fds_recipe.remove_result(recipe_name, result_name)
         return true
       end
     end
-    assert(FDS_ASSERT, "fds_recipe.remove_result: recipe `%s` does not have result `%s`", recipe_name, result_name)
+    assert(not FDS_ASSERT, "fds_recipe.remove_result: recipe `%s` does not have result `%s`", recipe_name, result_name)
   end
   return false
 end
