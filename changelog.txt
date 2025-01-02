@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.1.7
+  Changes:
+    - Remove assert if original ingredient/result in a replace function doesn't exist
+
+---------------------------------------------------------------------------------------------------
 Version: 0.1.6
   Changes:
     - Invert allow_combine argument for replace_X() functions into no_combine

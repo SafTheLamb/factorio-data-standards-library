@@ -3,12 +3,9 @@ local fds_recipe = {}
 -------------------------------------------------------------------------- General
 
 function fds_recipe.find(recipe_name, required)
-  for _,recipe in pairs(data.raw.recipe) do
-    if recipe.name == recipe_name then
-      return recipe
-    end
-  end
-  assert(not required, string.format("fds_recipe.find: Required recipe `%s` is missing.", recipe_name))
+  local recipe = data.raw.recipe[recipe_name]
+  assert(recipe or not required, string.format("fds_recipe.find: Required recipe `%s` is missing.", recipe_name))
+  return recipe
 end
 
 function fds_recipe.find_by_ingredient(ingredient_name)
@@ -120,19 +117,21 @@ function fds_recipe.replace_ingredient(recipe_name, old_ingredient_name, new_ing
   assert(recipe or not FDS_ASSERT, string.format("fds_recipe.replace_ingredient: recipe `%s` does not exist.", recipe_name))
   if recipe then
     local old_ingredient,old_index = fds_recipe.get_ingredient(recipe_name, old_ingredient_name)
-    assert(type(old_ingredient) == "table" and old_index ~= nil, string.format("fds_recipe.replace_ingredient: recipe `%s` does not have ingredient `%s`.", recipe_name, old_ingredient_name))
+    assert(not FDS_ASSERT or (type(old_ingredient) == "table" and old_index ~= nil), string.format("fds_recipe.replace_ingredient: recipe `%s` does not have ingredient `%s`.", recipe_name, old_ingredient_name))
+    
+    if old_ingredient then
+      local is_full_replace = type(new_ingredient) == "table"
+      local conflict = fds_recipe.get_ingredient(recipe_name, is_full_replace and new_ingredient.name or new_ingredient)
 
-    local is_full_replace = type(new_ingredient) == "table"
-    local conflict = fds_recipe.get_ingredient(recipe_name, is_full_replace and new_ingredient.name or new_ingredient)
-
-    if conflict then
-      assert(no_combine ~= true and (no_combine == false or not FDS_ASSERT), "fds_recipe.replace_ingredient: recipe `%s` has a conflicting ingredient `%s` that already exists.", recipe_name, conflict.name)
-      conflict.amount = conflict.amount + (is_full_replace and new_ingredient.amount or old_ingredient.amount)
-    else
-      if is_full_replace then
-        recipe.ingredients[old_index] = new_ingredient
+      if conflict then
+        assert(no_combine ~= true and (no_combine == false or not FDS_ASSERT), "fds_recipe.replace_ingredient: recipe `%s` has a conflicting ingredient `%s` that already exists.", recipe_name, conflict.name)
+        conflict.amount = conflict.amount + (is_full_replace and new_ingredient.amount or old_ingredient.amount)
       else
-        old_ingredient.name = new_ingredient
+        if is_full_replace then
+          recipe.ingredients[old_index] = new_ingredient
+        else
+          old_ingredient.name = new_ingredient
+        end
       end
     end
   end
@@ -237,22 +236,24 @@ function fds_recipe.replace_result(recipe_name, old_result_name, new_result, no_
   local recipe = data.raw.recipe[recipe_name]
   if recipe then
     local old_result,old_index = fds_recipe.get_result(recipe_name, old_result_name)
-    assert(type(old_result) == "table" and old_index ~= nil, string.format("fds_recipe.replace_result: recipe `%s` does not have result `%s`", recipe_name, old_result_name))
+    assert(not FDS_ASSERT or (type(old_result) == "table" and old_index ~= nil), string.format("fds_recipe.replace_result: recipe `%s` does not have result `%s`", recipe_name, old_result_name))
 
-    local is_full_replace = type(new_result) == "table"
-    local conflict = fds_recipe.get_result(recipe_name, is_full_replace and new_result.name or new_result)
+    if old_result then
+      local is_full_replace = type(new_result) == "table"
+      local conflict = fds_recipe.get_result(recipe_name, is_full_replace and new_result.name or new_result)
 
-    if conflict then
-      assert(no_combine ~= true and (no_combine == false or not FDS_ASSERT), string.format("fds_recipe.replace_result: recipe `%s` has a conflicting result `%s` that already exists", recipe_name, conflict.name))
-      conflict.amount = conflict.amount + (is_full_replace and new_result.amount or old_result.amount)
-      return conflict
-    else
-      if is_full_replace then
-        recipe.results[old_index] = new_result
-        return new_result
+      if conflict then
+        assert(no_combine ~= true and (no_combine == false or not FDS_ASSERT), string.format("fds_recipe.replace_result: recipe `%s` has a conflicting result `%s` that already exists", recipe_name, conflict.name))
+        conflict.amount = conflict.amount + (is_full_replace and new_result.amount or old_result.amount)
+        return conflict
       else
-        old_result.name = new_result
-        return old_result
+        if is_full_replace then
+          recipe.results[old_index] = new_result
+          return new_result
+        else
+          old_result.name = new_result
+          return old_result
+        end
       end
     end
   end

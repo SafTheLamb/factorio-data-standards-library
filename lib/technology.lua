@@ -1,10 +1,21 @@
 local fds_technology = {}
 
+-------------------------------------------------------------------------- General
+
+
+
+-------------------------------------------------------------------------- Technology modifying
+
+-- merge_technologies
+
+-- remove_technology ()
+
 -------------------------------------------------------------------------- Prerequisites
 
 function fds_technology.add_prereq(tech_name, prereq_name)
   local technology = data.raw.technology[tech_name]
   local prerequisite = data.raw.technology[prereq_name]
+  assert(prerequisite or not FDS_ASSERT)
   if technology and prerequisite then
     table.insert(technology.prerequisites, prereq_name)
   end
