@@ -1,6 +1,6 @@
 local fds_recipe = {}
 
--------------------------------------------------------------------------- General
+-------------------------------------------------------------------------- Find recipes
 
 function fds_recipe.find(recipe_name, required)
   local recipe = data.raw.recipe[recipe_name]
@@ -34,6 +34,24 @@ function fds_recipe.find_by_result(result_name)
     end
   end
   return matches
+end
+
+-------------------------------------------------------------------------- General
+
+function fds_recipe.change_time(recipe_name, modifiers)
+  assert(type(modifiers) == "table")
+  local recipe = data.raw.recipe[recipe_name]
+  assert(recipe or not FDS_ASSERT, string.format("fds_recipe.change_time: recipe `%s` does not exist.", recipe_name))
+  if recipe then
+    local energy_required = recipe.energy_required or 0.5
+    if type(modifiers.scale) == "number" then
+      energy_required = modifiers.scale * energy_required
+    end
+    if type(modifiers.add) == "number" then
+      energy_required = energy_required + modifiers.add
+    end
+    recipe.energy_required = energy_required
+  end
 end
 
 -------------------------------------------------------------------------- Ingredients
@@ -275,24 +293,6 @@ function fds_recipe.remove_result(recipe_name, result_name)
     assert(not FDS_ASSERT, "fds_recipe.remove_result: recipe `%s` does not have result `%s`", recipe_name, result_name)
   end
   return false
-end
-
--------------------------------------------------------------------------- Miscellaneous
-
-function fds_recipe.change_time(recipe_name, modifiers)
-  assert(type(modifiers) == "table")
-  local recipe = data.raw.recipe[recipe_name]
-  assert(recipe or not FDS_ASSERT, string.format("fds_recipe.change_time: recipe `%s` does not exist.", recipe_name))
-  if recipe then
-    local energy_required = recipe.energy_required or 0.5
-    if type(modifiers.scale) == "number" then
-      energy_required = modifiers.scale * energy_required
-    end
-    if type(modifiers.add) == "number" then
-      energy_required = energy_required + modifiers.add
-    end
-    recipe.energy_required = energy_required
-  end
 end
 
 -------------------------------------------------------------------------- Shared

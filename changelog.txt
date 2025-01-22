@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.1.8
+  Changes:
+    - Add replace_prereq function
+  Bugfixes:
+    - Fix crash if prerequisites isn't valid
+
+---------------------------------------------------------------------------------------------------
 Version: 0.1.7
   Changes:
     - Remove assert if original ingredient/result in a replace function doesn't exist
