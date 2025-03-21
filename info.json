@@ -3,7 +3,8 @@
   "title": "Factorio Data Standards Library",
   "description": "A handful of helpful functions for mods to change prototypes during the data stage.",
   "author": "SafTheLamb",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "factorio_version": "2.0",
-  "homepage": "https://github.com/sapphiriza/factorio-data-standards-library"
+  "homepage": "https://github.com/sapphiriza/factorio-data-standards-library",
+  "dependencies": []
 }
