@@ -1,8 +1,39 @@
+local fds_assert = require("lib.assert")
+
 local fds_technology = {}
 
 -------------------------------------------------------------------------- General
 
+function fds_technology.find(tech_name, required)
+  local technology = data.raw.technology[tech_name]
+  fds_assert.ensure_if(technology, required, "fds_technology.find: Required technology `%s` does not exist", tech_name)
+  return technology
+end
 
+function fds_technology.find_by_unlock(recipe_name, required)
+  local matches = {}
+  for _,technology in pairs(data.raw.technology) do
+    for _,effect in pairs(technology.effects or {}) do
+      if effect.type == "unlock-recipe" and effect.recipe == recipe_name then
+        table.insert(matches, technology.name)
+      end
+    end
+  end
+  return matches
+end
+
+function fds_technology.find_by_prereq(prereq_name, required)
+  local matches = {}
+  for _,technology in pairs(data.raw.technology) do
+    for _,prereq in pairs(technology.prerequisites or {}) do
+      if prereq == prereq_name then
+        table.insert(matches, technology.name)
+      end
+    end
+  end
+  fds_assert.ensure_if(matches ~= {}, required, "fds_technology.find_by_prereq: No technology with prerequisite `%s` exists when required", prereq_name)
+  return matches
+end
 
 -------------------------------------------------------------------------- Technology modifying
 
@@ -11,6 +42,38 @@ local fds_technology = {}
 -- remove_technology ()
 
 -------------------------------------------------------------------------- Prerequisites
+
+function fds_technology.has_prereq(tech_name, prereq_name)
+  local technology = data.raw.technology[tech_name]
+  fds_assert.ensure(technology, "fds_technology.has_prereq: Technology `%s` does not exist", tech_name)
+  for _,prereq in pairs(technology.prerequisites) do
+    if prereq == prereq_name then
+      return true
+    end
+  end
+end
+
+function fds_technology.has_prereq_recursive(tech_name, prereq_name)
+  fds_assert.ensure(data.raw.technology[tech_name], "fds_technology.has_prereq_recursive: Technology `%s` does not exist", tech_name)
+  local open_list = {tech_name}
+  local visit_list = {}
+  local i = 0
+  while i < #open_list do
+    i = i + 1
+    local visit_name = open_list[i]
+    local visit_tech = data.raw.technology[visit_name]
+    if visit_tech and not visit_list[visit_name] then
+      visit_list[visit_name] = true
+      if visit_name == prereq_name then
+        return true
+      end
+      for _,visit_prereq in pairs(visit_tech.prerequisites or {}) do
+        table.insert(open_list, visit_prereq)
+      end
+    end
+  end
+  return false
+end
 
 function fds_technology.add_prereq(tech_name, prereq_name)
   local technology = data.raw.technology[tech_name]
