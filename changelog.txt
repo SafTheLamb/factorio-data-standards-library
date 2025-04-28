@@ -1,56 +1,51 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.2.0
+  Minor Features:
+    - Add find_prereq functions
+---------------------------------------------------------------------------------------------------
 Version: 0.1.9
   Changes:
     - Set dependencies to empty
-
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.8
   Changes:
     - Add replace_prereq function
   Bugfixes:
     - Fix crash if prerequisites isn't valid
-
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.7
   Changes:
     - Remove assert if original ingredient/result in a replace function doesn't exist
-
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.6
   Changes:
     - Invert allow_combine argument for replace_X() functions into no_combine
   Bugfixes:
     - Fix wrong assert
-
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.5
   Minor Features:
     - Add functions for finding recipes
   Changes:
     - Recipe functions that modify an ingredient or result now return it after modifying
-
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.4
   Changes:
     - Fix assert formatting
-
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.3
   Changes:
     - Add helper functions for editing surface conditions (if you don't own SA, the functions will no-op)
     - Add helper functions for editing resistances
-
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.2
   Changes:
     - Remove dependency on the base mod
-
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.1
   Minor Features:
     - Add fds_recipe.change_time
     - Fix formatting for assert messages
-
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.0
   Major Features:
