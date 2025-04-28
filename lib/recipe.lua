@@ -1,21 +1,21 @@
+local fds_assert = require("lib.assert")
+
 local fds_recipe = {}
 
 -------------------------------------------------------------------------- Find recipes
 
 function fds_recipe.find(recipe_name, required)
   local recipe = data.raw.recipe[recipe_name]
-  assert(recipe or not required, string.format("fds_recipe.find: Required recipe `%s` is missing.", recipe_name))
+  fds_assert.ensure_if(recipe, required, "fds_recipe.find: Required recipe `%s` is missing.", recipe_name)
   return recipe
 end
 
 function fds_recipe.find_by_ingredient(ingredient_name)
   local matches = {}
   for _,recipe in pairs(data.raw.recipe) do
-    if #recipe.ingredients > 0 then
-      for _,ingredient in pairs(recipe.ingredients) do
-        if ingredient.name == ingredient_name then
-          table.insert(matches, recipe.name)
-        end
+    for _,ingredient in pairs(recipe.ingredients or {}) do
+      if ingredient.name == ingredient_name then
+        table.insert(matches, recipe.name)
       end
     end
   end
