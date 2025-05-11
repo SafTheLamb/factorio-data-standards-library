@@ -51,6 +51,7 @@ function fds_technology.has_prereq(tech_name, prereq_name)
       return true
     end
   end
+  return false
 end
 
 function fds_technology.has_prereq_recursive(tech_name, prereq_name)
