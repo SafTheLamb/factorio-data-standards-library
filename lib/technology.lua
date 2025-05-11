@@ -19,6 +19,7 @@ function fds_technology.find_by_unlock(recipe_name, required)
       end
     end
   end
+  fds_assert.ensure_if(matches ~= {}, required, "fds_technology.find_by_unlock: No technology with unlock `%s` exists when required", recipe_name)
   return matches
 end
 
