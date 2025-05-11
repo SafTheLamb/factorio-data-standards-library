@@ -277,6 +277,22 @@ function fds_recipe.replace_result(recipe_name, old_result_name, new_result, no_
   end
 end
 
+function fds_recipe.reorder_result(recipe_name, result_name, new_index)
+  local recipe = data.raw.recipe[recipe_name]
+  if recipe then
+    for i,result in pairs(recipe.results or {}) do
+      if result.name == result_name then
+        table.insert(recipe.results, new_index, result)
+        if new_index <= i then
+          table.remove(recipe.results, i + 1)
+        end
+        return true
+      end
+    end
+  end
+  return false
+end
+
 -- Removes the provided result from the given recipe.
 --  recipe_name (RecipeID string): Name of the recipe (eg "iron-gear-wheel"). Nothing happens if the recipe is not defined. Will assert if FDS_ASSERT is true.
 --  result_name (ItemID or FluidID string): Name of the result to remove.
