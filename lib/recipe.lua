@@ -59,7 +59,7 @@ end
 -- Gets the ingredient from the recipe, if it exists.
 --  recipe_name (RecipeID string): Name of the recipe (eg "iron-gear-wheel").
 --  ingredient_name (ItemID or FluidID string): Name of ingredient to find.
--- return (IngredientPrototype or nil): IngredientPrototype if it exists, otherwise nil.
+-- return (index, IngredientPrototype or nil): IngredientPrototype if it exists, otherwise nil.
 function fds_recipe.get_ingredient(recipe_name, ingredient_name)
   assert(type(ingredient_name) == "string")
   local recipe = data.raw.recipe[recipe_name]
@@ -67,7 +67,7 @@ function fds_recipe.get_ingredient(recipe_name, ingredient_name)
   if recipe and recipe.ingredients then
     for index,ingredient in pairs(recipe.ingredients) do
       if ingredient.name == ingredient_name then
-        return ingredient,index
+        return index,ingredient
       end
     end
   end
@@ -84,7 +84,7 @@ function fds_recipe.add_ingredient(recipe_name, new_ingredient, allow_combine, i
   local recipe = data.raw.recipe[recipe_name]
   assert(recipe or not FDS_ASSERT, string.format("fds_recipe.add_ingredient: recipe `%s` does not exist.", recipe_name))
   if recipe then
-    local conflict = fds_recipe.get_ingredient(recipe_name, new_ingredient.name)
+    local _,conflict = fds_recipe.get_ingredient(recipe_name, new_ingredient.name)
     if conflict then
       assert(allow_combine ~= false, string.format("fds_recipe.replace_ingredient: recipe `%s` has a conflicting ingredient `%s` that already exists.", recipe_name, conflict.name))
       conflict.amount = conflict.amount + new_ingredient.amount
@@ -104,7 +104,7 @@ end
 --  modifiers (dictionary): Map of values to change. e.g. {amount=0, min_temperature=9999}
 function fds_recipe.modify_ingredient(recipe_name, ingredient_name, modifiers)
   assert(type(modifiers) == "table")
-  local ingredient = fds_recipe.get_ingredient(recipe_name, ingredient_name)
+  local _,ingredient = fds_recipe.get_ingredient(recipe_name, ingredient_name)
   assert(ingredient or not FDS_ASSERT, string.format("fds_recipe.modify_ingredient: recipe `%s` does not have ingredient `%s`.", recipe_name, ingredient_name))
   if ingredient then
     for key,val in pairs(modifiers) do
@@ -115,7 +115,7 @@ end
 
 -- 
 function fds_recipe.scale_ingredient(recipe_name, ingredient_name, scalars)
-  local ingredient = fds_recipe.get_ingredient(recipe_name, ingredient_name)
+  local _,ingredient = fds_recipe.get_ingredient(recipe_name, ingredient_name)
   if ingredient then
     for key,scalar in pairs(scalars) do
       assert(type(scalar) == "number")
@@ -134,12 +134,12 @@ function fds_recipe.replace_ingredient(recipe_name, old_ingredient_name, new_ing
   local recipe = data.raw.recipe[recipe_name]
   assert(recipe or not FDS_ASSERT, string.format("fds_recipe.replace_ingredient: recipe `%s` does not exist.", recipe_name))
   if recipe then
-    local old_ingredient,old_index = fds_recipe.get_ingredient(recipe_name, old_ingredient_name)
+    local old_index,old_ingredient = fds_recipe.get_ingredient(recipe_name, old_ingredient_name)
     assert(not FDS_ASSERT or (type(old_ingredient) == "table" and old_index ~= nil), string.format("fds_recipe.replace_ingredient: recipe `%s` does not have ingredient `%s`.", recipe_name, old_ingredient_name))
     
-    if old_ingredient then
+    if old_index and old_ingredient then
       local is_full_replace = type(new_ingredient) == "table"
-      local conflict = fds_recipe.get_ingredient(recipe_name, is_full_replace and new_ingredient.name or new_ingredient)
+      local _,conflict = fds_recipe.get_ingredient(recipe_name, is_full_replace and new_ingredient.name or new_ingredient)
 
       if conflict then
         assert(no_combine ~= true and (no_combine == false or not FDS_ASSERT), "fds_recipe.replace_ingredient: recipe `%s` has a conflicting ingredient `%s` that already exists.", recipe_name, conflict.name)
@@ -178,14 +178,14 @@ end
 -- Gets the result from the recipe, if it exists.
 --  recipe_name (RecipeID string): Name of the recipe (eg "iron-gear-wheel").
 --  result_name (ItemID or FluidID string): Name of result to find.
--- return (ResultPrototype or nil, index): ResultPrototype if it exists, otherwise nil.
+-- return (index, ResultPrototype or nil): ResultPrototype if it exists, otherwise nil.
 function fds_recipe.get_result(recipe_name, result_name)
   assert(type(result_name) == "string")
   local recipe = data.raw.recipe[recipe_name]
   if recipe then
     for index,result in pairs(recipe.results or {}) do
       if result.name == result_name then
-        return result,index
+        return index,result
       end
     end
   end
@@ -201,7 +201,7 @@ function fds_recipe.add_result(recipe_name, new_result, allow_combine, new_index
   assert(type(new_result) == "table", string.format("fds_recipe.add_result: new_result must be an ResultPrototype"))
   local recipe = data.raw.recipe[recipe_name]
   if recipe then
-    local conflict = fds_recipe.get_result(recipe_name, new_result.name)
+    local _,conflict = fds_recipe.get_result(recipe_name, new_result.name)
     if conflict then
       assert(allow_combine ~= false, string.format("fds_recipe.add_result: recipe `%s` has a conflicting result `%s` that already exists", recipe_name, conflict.name))
       conflict.amount = conflict.amount + new_result.amount
@@ -222,7 +222,7 @@ end
 --  modifiers (dictionary of ProductPrototype values): Map of values to change. e.g. {amount=0, amount_min=0, amount_max=10}
 function fds_recipe.modify_result(recipe_name, result_name, modifiers)
   assert(type(modifiers) == "table")
-  local result = fds_recipe.get_result(recipe_name, result_name)
+  local _,result = fds_recipe.get_result(recipe_name, result_name)
   assert(result or not FDS_ASSERT, string.format("fds_recipe.modify_result: recipe `%s` does not have result `%s`.", recipe_name, result_name))
   if result then
     for key,val in pairs(modifiers) do
@@ -234,7 +234,7 @@ end
 
 -- 
 function fds_recipe.scale_result(recipe_name, result_name, scalars)
-  local result = fds_recipe.get_result(recipe_name, result_name)
+  local _,result = fds_recipe.get_result(recipe_name, result_name)
   if result then
     for key,scalar in pairs(scalars) do
       assert(type(scalar) == "number")
@@ -253,12 +253,12 @@ end
 function fds_recipe.replace_result(recipe_name, old_result_name, new_result, no_combine)
   local recipe = data.raw.recipe[recipe_name]
   if recipe then
-    local old_result,old_index = fds_recipe.get_result(recipe_name, old_result_name)
+    local old_index,old_result = fds_recipe.get_result(recipe_name, old_result_name)
     assert(not FDS_ASSERT or (type(old_result) == "table" and old_index ~= nil), string.format("fds_recipe.replace_result: recipe `%s` does not have result `%s`", recipe_name, old_result_name))
 
-    if old_result then
+    if old_index and old_result then
       local is_full_replace = type(new_result) == "table"
-      local conflict = fds_recipe.get_result(recipe_name, is_full_replace and new_result.name or new_result)
+      local _,conflict = fds_recipe.get_result(recipe_name, is_full_replace and new_result.name or new_result)
 
       if conflict then
         assert(no_combine ~= true and (no_combine == false or not FDS_ASSERT), string.format("fds_recipe.replace_result: recipe `%s` has a conflicting result `%s` that already exists", recipe_name, conflict.name))
