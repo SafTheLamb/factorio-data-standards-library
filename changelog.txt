@@ -1,7 +1,13 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.0
+  Changes:
+    - get_ingredient and get_result now return index first
   Minor Features:
-    - Add find_prereq functions
+    - Add new fds_technology functions: find, find_by_unlock, find_by_prereq
+    - Add new fds_technology functions: has_prereq, has_prereq_recursive
+    - Add fds_recipe.reorder_result
+    - Add fds_general.hide_all_prototypes
+    - Add new fds_assert functions
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.9
   Changes:
