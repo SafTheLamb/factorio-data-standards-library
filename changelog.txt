@@ -2,6 +2,7 @@
 Version: 0.2.1
 Date: ????
   Changes:
+    - Add fds_recipe.add_category function, requires engine version >=2.0.49 which is now stable, will otherwise do nothing
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.0
 Date: 2025-05-11

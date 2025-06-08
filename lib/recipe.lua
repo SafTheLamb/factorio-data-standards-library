@@ -38,6 +38,21 @@ end
 
 -------------------------------------------------------------------------- General
 
+-- Does not change RecipePrototype.category, so should not prevent the recipe from being used in existing machines
+-- Requires new API feature from 2.0.49
+function fds_recipe.add_category(recipe_name, additional_category)
+  local recipe = data.raw.recipe[recipe_name]
+  fds_assert.ensure(data.raw["recipe-category"][additional_category], "fds_recipe.add_category: Recipe category %s does not exist.", additional_category)
+  if recipe then
+    if not recipe.additional_categories then
+      recipe.additional_categories = {additional_category}
+    else
+      table.insert(recipe.additional_categories, additional_category)
+    end
+    return recipe.additional_categories
+  end
+end
+
 function fds_recipe.change_time(recipe_name, modifiers)
   assert(type(modifiers) == "table")
   local recipe = data.raw.recipe[recipe_name]
