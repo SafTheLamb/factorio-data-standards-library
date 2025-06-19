@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.2
-Date: ????
+Date: 2025-06-19
   Bugfixes:
     - replace_ingredient and replace_result didn't actually remove the old element when the new ingredient already exists
 ---------------------------------------------------------------------------------------------------
