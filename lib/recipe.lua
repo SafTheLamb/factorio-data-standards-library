@@ -159,6 +159,7 @@ function fds_recipe.replace_ingredient(recipe_name, old_ingredient_name, new_ing
       if conflict then
         assert(no_combine ~= true and (no_combine == false or not FDS_ASSERT), "fds_recipe.replace_ingredient: recipe `%s` has a conflicting ingredient `%s` that already exists.", recipe_name, conflict.name)
         conflict.amount = conflict.amount + (is_full_replace and new_ingredient.amount or old_ingredient.amount)
+        table.remove(recipe.ingredients, old_index)
       else
         if is_full_replace then
           recipe.ingredients[old_index] = new_ingredient
@@ -278,6 +279,7 @@ function fds_recipe.replace_result(recipe_name, old_result_name, new_result, no_
       if conflict then
         assert(no_combine ~= true and (no_combine == false or not FDS_ASSERT), string.format("fds_recipe.replace_result: recipe `%s` has a conflicting result `%s` that already exists", recipe_name, conflict.name))
         conflict.amount = conflict.amount + (is_full_replace and new_result.amount or old_result.amount)
+        table.remove(recipe.results, old_index)
         return conflict
       else
         if is_full_replace then
