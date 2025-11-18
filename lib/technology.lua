@@ -19,7 +19,7 @@ function fds_technology.find_by_unlock(recipe_name, required)
       end
     end
   end
-  fds_assert.ensure_if(matches ~= {}, required, "fds_technology.find_by_unlock: No technology with unlock `%s` exists when required", recipe_name)
+  fds_assert.ensure_if(next(matches) ~= nil, required, "fds_technology.find_by_unlock: No technology with unlock `%s` exists when required", recipe_name)
   return matches
 end
 
@@ -32,7 +32,7 @@ function fds_technology.find_by_prereq(prereq_name, required)
       end
     end
   end
-  fds_assert.ensure_if(matches ~= {}, required, "fds_technology.find_by_prereq: No technology with prerequisite `%s` exists when required", prereq_name)
+  fds_assert.ensure_if(next(matches) ~= nil, required, "fds_technology.find_by_prereq: No technology with prerequisite `%s` exists when required", prereq_name)
   return matches
 end
 
@@ -121,7 +121,21 @@ end
 
 -- move_prereq(old_tech_name, new_tech_name, prereq_name)
 
--------------------------------------------------------------------------- Recipe unlocks
+-------------------------------------------------------------------------- Effects
+
+function fds_technology.add_effect(tech_name, effect, index)
+  local technology = data.raw.technology[tech_name]
+  if technology then
+    if not technology.effects then
+      technology.effects = {}
+    end
+    if type(index) == "number" then
+      table.insert(technology.effects, index, effect)
+    else
+      table.insert(technology.effects, effect)
+    end
+  end
+end
 
 function fds_technology.add_unlock(tech_name, recipe_name, index)
   local technology = data.raw.technology[tech_name]

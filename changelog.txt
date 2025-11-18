@@ -2,6 +2,7 @@
 Version: 0.2.3
 Date: ????
   Changes:
+    - Add fds_technology.add_effect for technology effects of any kind (does not check for duplicates)
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.2
 Date: 2025-06-19
