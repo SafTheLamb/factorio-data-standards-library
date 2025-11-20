@@ -140,6 +140,20 @@ function fds_recipe.scale_ingredient(recipe_name, ingredient_name, scalars)
   end
 end
 
+function fds_recipe.scale_ingredients(recipe_name, scalars)
+  local recipe = data.raw.recipe[recipe_name]
+  if recipe and recipe.ingredients then
+    for key,scalar in pairs(scalars) do
+      fds_assert.ensure(type(scalar) == "number", "fds_recipe.scale_ingredients: scalar `%s` is not a number.", key)
+      for _,ingredient in pairs(recipe.ingredients) do
+        if type(ingredient[key]) == "number" then
+          ingredient[key] = ingredient[key] * scalar
+        end
+      end
+    end
+  end
+end
+
 -- Adds the provided ingredient to the given recipe.
 --  recipe_name (RecipeID string): Name of the recipe, (eg "iron-gear-wheel"). Nothing happens if the recipe is not defined. Will assert if FDS_ASSERT is true.
 --  old_ingredient_name (ItemID or FluidID string): Name of ingredient to replace (eg "iron-plate")

@@ -2,6 +2,7 @@
 Version: 0.2.4
 Date: ????
   Changes:
+    - Add fds_recipe.scale_ingredients for scaling ALL ingredients that have the given properties to be scaled
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.3
 Date: 2025-11-18
