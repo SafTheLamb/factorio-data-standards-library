@@ -1,7 +1,10 @@
 ---------------------------------------------------------------------------------------------------
-Version: 0.2.5
+Version: 0.3.0
 Date: ????
+  Features:
+    - Add new fds_recipe function: split_ingredient
   Changes:
+    - fds_recipe.get_ingredient: now returns 0,nil if the ingredient does not exist (so that get()[2] won't crash)
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.4
 Date: 2025-11-20
@@ -27,7 +30,7 @@ Version: 0.2.0
 Date: 2025-05-11
   Changes:
     - get_ingredient and get_result now return index first
-  Minor Features:
+  Features:
     - Add new fds_technology functions: find, find_by_unlock, find_by_prereq
     - Add new fds_technology functions: has_prereq, has_prereq_recursive
     - Add fds_recipe.reorder_result
@@ -55,7 +58,7 @@ Version: 0.1.6
     - Fix wrong assert
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.5
-  Minor Features:
+  Features:
     - Add functions for finding recipes
   Changes:
     - Recipe functions that modify an ingredient or result now return it after modifying

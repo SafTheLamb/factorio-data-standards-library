@@ -86,7 +86,7 @@ function fds_recipe.get_ingredient(recipe_name, ingredient_name)
       end
     end
   end
-  return nil
+  return 0,nil
 end
 
 -- Adds the provided ingredient to the given recipe.
@@ -180,6 +180,49 @@ function fds_recipe.replace_ingredient(recipe_name, old_ingredient_name, new_ing
         else
           old_ingredient.name = new_ingredient
         end
+      end
+    end
+  end
+end
+
+-- Splits the old ingredient into the new set of ingredients.
+--   recipe_name: Name of the recipe.
+--   old_ingredient_name (ItemID or FluidID string): Name of the ingredient to split.
+--   new_ingredients (table of strings): Names of the ingredients to split the given ingredient into. The original ingredient CAN be included in this.
+--   allow_combine (optional, boolean)
+function fds_recipe.split_ingredient(recipe_name, old_ingredient_name, new_ingredients, no_combine)
+  local recipe = data.raw.recipe[recipe_name]
+  assert(recipe or not FDS_ASSERT, string.format("fds_recipe.split_ingredient: recipe `%s` does not exist.", recipe_name))
+  if recipe then
+    local old_index,old_ingredient = fds_recipe.get_ingredient(recipe_name, old_ingredient_name)
+    if old_index and old_ingredient then
+      -- Deepcopy
+      old_ingredient = util.table.deepcopy(old_ingredient)
+
+      local split_factor = 1 / #new_ingredients
+      local split_amount = math.ceil(split_factor * old_ingredient.amount)
+      local old_unused = true
+      for i,new_ingredient_name in pairs(new_ingredients) do
+        local _,conflict = fds_recipe.get_ingredient(recipe_name, new_ingredient_name)
+        if conflict then
+          if new_ingredient_name == old_ingredient_name then
+            old_unused = false
+            conflict.amount = split_amount
+          else
+            assert(no_combine == false)
+            conflict.amount = conflict.amount + split_amount
+          end
+        else
+          local new_ingredient_prototype = util.table.deepcopy(old_ingredient)
+          new_ingredient_prototype.name = new_ingredient_name
+          new_ingredient_prototype.amount = split_amount
+          table.insert(recipe.ingredients, old_index + i - (old_unused and 0 or 1), new_ingredient_prototype)
+        end
+      end
+
+      -- Remove the old ingredient after we're done copying it
+      if old_unused then
+        table.remove(recipe.ingredients, old_index)
       end
     end
   end
