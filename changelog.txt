@@ -2,13 +2,14 @@
 Version: 0.3.1
 Date: ????
   Changes:
+    - fds_recipe.get_ingredient: now returns nil,nil instead
 ---------------------------------------------------------------------------------------------------
 Version: 0.3.0
 Date: 2025-12-20
   Features:
     - Add new fds_recipe function: split_ingredient
   Changes:
-    - fds_recipe.get_ingredient: now returns 0,nil if the ingredient does not exist (so that get()[2] won't crash)
+    - fds_recipe.get_ingredient: now returns 0,nil if the ingredient does not exist (so that table.pack(...)[2] is possible for inline use)
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.4
 Date: 2025-11-20

@@ -86,7 +86,7 @@ function fds_recipe.get_ingredient(recipe_name, ingredient_name)
       end
     end
   end
-  return 0,nil
+  return nil,nil
 end
 
 -- Adds the provided ingredient to the given recipe.
