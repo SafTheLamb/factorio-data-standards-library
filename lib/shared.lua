@@ -1,5 +1,13 @@
 local fds_shared = {}
 
+-------------------------------------------------------------------------- Find recipe
+function fds_shared.recipe_find(recipe_in, required)
+  local recipe = recipe_in
+  if type(recipe_in) == "string" then recipe = data.raw.recipe[recipe_in] end
+  if fds_assert then fds_assert.ensure_if(recipe, required, "fds_shared.recipe_find: Required recipe `%s` is missing.", recipe_name) end
+  return recipe, (recipe and recipe.name)
+end
+
 -------------------------------------------------------------------------- Surface conditions
 
 function fds_shared.get_surface_condition(prototype, property_name)

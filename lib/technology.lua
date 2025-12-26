@@ -2,13 +2,17 @@ local fds_assert = require("lib.assert")
 
 local fds_technology = {}
 
+local recipe_find = require("__fdsl__.lib.shared").recipe_find
+
 -------------------------------------------------------------------------- General
 
-function fds_technology.find(tech_name, required)
-  local technology = data.raw.technology[tech_name]
+local function tech_find(tech_name, required)
+  local technology = tech_name
+  if type(technology) == "string" then technology = data.raw.technology[tech_name] end
   fds_assert.ensure_if(technology, required, "fds_technology.find: Required technology `%s` does not exist", tech_name)
-  return technology
+  return technology, (technology and technology.name)
 end
+fds_technology.find = tech_find
 
 function fds_technology.find_by_unlock(recipe_name, required)
   local matches = {}
@@ -44,8 +48,8 @@ end
 
 -------------------------------------------------------------------------- Prerequisites
 
-function fds_technology.has_prereq(tech_name, prereq_name)
-  local technology = data.raw.technology[tech_name]
+function fds_technology.has_prereq(tech_in, prereq_name)
+  local technology, tech_name = tech_find(tech_in)
   fds_assert.ensure(technology, "fds_technology.has_prereq: Technology `%s` does not exist", tech_name)
   for _,prereq in pairs(technology.prerequisites) do
     if prereq == prereq_name then
@@ -55,7 +59,8 @@ function fds_technology.has_prereq(tech_name, prereq_name)
   return false
 end
 
-function fds_technology.has_prereq_recursive(tech_name, prereq_name)
+function fds_technology.has_prereq_recursive(tech_in, prereq_name)
+  local technology, tech_name = tech_find(tech_in)
   fds_assert.ensure(data.raw.technology[tech_name], "fds_technology.has_prereq_recursive: Technology `%s` does not exist", tech_name)
   local open_list = {tech_name}
   local visit_list = {}
@@ -77,9 +82,9 @@ function fds_technology.has_prereq_recursive(tech_name, prereq_name)
   return false
 end
 
-function fds_technology.add_prereq(tech_name, prereq_name)
-  local technology = data.raw.technology[tech_name]
-  local prerequisite = data.raw.technology[prereq_name]
+function fds_technology.add_prereq(tech_in, prereq_in)
+  local technology, tech_name = tech_find(tech_in)
+  local prerequisite, prereq_name = tech_find(prereq_in)
   assert(prerequisite or not FDS_ASSERT)
   if technology and prerequisite then
     if technology.prerequisites then
@@ -91,9 +96,10 @@ function fds_technology.add_prereq(tech_name, prereq_name)
   return technology.prerequisites
 end
 
-function fds_technology.replace_prereq(tech_name, old_prereq_name, new_prereq_name)
-  local technology = data.raw.technology[tech_name]
-  local prerequisite = data.raw.technology[new_prereq_name]
+function fds_technology.replace_prereq(tech_in, old_prereq_in, new_prereq_in)
+  local technology, tech_name = tech_find(tech_in)
+  local _, old_prereq_name = tech_find(old_prereq_in)
+  local prerequisite, new_prereq_name = tech_find(new_prereq_in)
   if technology and prerequisite and technology.prerequisites then
     for i,prereq in pairs(technology.prerequisites) do
       if prereq == old_prereq_name then
@@ -104,8 +110,9 @@ function fds_technology.replace_prereq(tech_name, old_prereq_name, new_prereq_na
   end
 end
 
-function fds_technology.remove_prereq(tech_name, prereq_name)
-  local technology = data.raw.technology[tech_name]
+function fds_technology.remove_prereq(tech_in, prereq_in)
+  local technology, tech_name = tech_find(tech_in)
+  local _, prereq_name = tech_find(prereq_in)
   if technology and technology.prerequisites then
     for i,prereq in pairs(technology.prerequisites) do
       if prereq == prereq_name then
@@ -123,8 +130,8 @@ end
 
 -------------------------------------------------------------------------- Effects
 
-function fds_technology.add_effect(tech_name, effect, index)
-  local technology = data.raw.technology[tech_name]
+function fds_technology.add_effect(tech_in, effect, index)
+  local technology, tech_name = tech_find(tech_in)
   if technology then
     if not technology.effects then
       technology.effects = {}
@@ -137,9 +144,9 @@ function fds_technology.add_effect(tech_name, effect, index)
   end
 end
 
-function fds_technology.add_unlock(tech_name, recipe_name, index)
-  local technology = data.raw.technology[tech_name]
-  local recipe = data.raw.recipe[recipe_name]
+function fds_technology.add_unlock(tech_in, recipe_in, index)
+  local technology, tech_name = tech_find(tech_in)
+  local recipe, recipe_name = recipe_find(recipe_in)
   if technology and recipe then
     if recipe.enabled ~= false then
       recipe.enabled = false
@@ -156,8 +163,8 @@ function fds_technology.add_unlock(tech_name, recipe_name, index)
   end
 end
 
-function fds_technology.check_recipe_unlocks(recipe_name)
-  local recipe = data.raw.recipe[recipe_name]
+function fds_technology.check_recipe_unlocks(recipe_in)
+  local recipe, recipe_name = recipe_find(recipe_in)
   if recipe then
     for _,technology in pairs(data.raw.technology) do
       for _,effect in pairs(technology.effects or {}) do
@@ -170,8 +177,8 @@ function fds_technology.check_recipe_unlocks(recipe_name)
   end
 end
 
-function fds_technology.replace_unlock(tech_name, old_recipe_name, new_recipe_name)
-  local technology = data.raw.technology[tech_name]
+function fds_technology.replace_unlock(tech_in, old_recipe_name, new_recipe_name)
+  local technology, tech_name = tech_find(tech_in)
   if technology and technology.effects then
     for i,effect in pairs(technology.effects) do
       if effect.type == "unlock-recipe" and effect.recipe == old_recipe_name then
@@ -183,8 +190,8 @@ function fds_technology.replace_unlock(tech_name, old_recipe_name, new_recipe_na
   end
 end
 
-function fds_technology.remove_unlock(tech_name, recipe_name)
-  local technology = data.raw.technology[tech_name]
+function fds_technology.remove_unlock(tech_in, recipe_name)
+  local technology, tech_name = tech_find(tech_in)
   if technology and technology.effects then
     for i,effect in pairs(technology.effects) do
       if effect.type == "unlock-recipe" and effect.recipe == recipe_name then
@@ -202,16 +209,16 @@ end
 
 -------------------------------------------------------------------------- Research costs
 
-function fds_technology.add_cost_ingredient(tech_name, pack_name)
-  local technology = data.raw.technology[tech_name]
+function fds_technology.add_cost_ingredient(tech_in, pack_name)
+  local technology, tech_name = tech_find(tech_in)
   if technology and technology.unit then
     if not technology.unit.ingredients then technology.unit.ingredients = {} end
     table.insert(technology.unit.ingredients, {pack_name, 1})
   end
 end
 
-function fds_technology.modify_cost(tech_name, modifiers)
-  local technology = data.raw.technology[tech_name]
+function fds_technology.modify_cost(tech_in, modifiers)
+  local technology, tech_name = tech_find(tech_in)
   if technology and technology.unit then
     for key,val in pairs(modifiers) do
       technology.unit[key] = val
@@ -219,8 +226,8 @@ function fds_technology.modify_cost(tech_name, modifiers)
   end
 end
 
-function fds_technology.scale_cost(tech_name, scalars)
-  local technology = data.raw.technology[tech_name]
+function fds_technology.scale_cost(tech_in, scalars)
+  local technology, tech_name = tech_find(tech_in)
   if technology and technology.unit then
     for key,val in pairs(scalars) do
       technology.unit[key] = technology.unit[key] * val
@@ -228,8 +235,8 @@ function fds_technology.scale_cost(tech_name, scalars)
   end
 end
 
-function fds_technology.remove_cost_ingredient(tech_name, pack_name)
-  local technology = data.raw.technology[tech_name]
+function fds_technology.remove_cost_ingredient(tech_in, pack_name)
+  local technology, tech_name = tech_find(tech_in)
   if technology and technology.unit then
     for i,ingredient in pairs(technology.unit.ingredients) do
       if ingredient[1] == pack_name then
