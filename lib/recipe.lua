@@ -5,8 +5,8 @@ local fds_recipe = {}
 -------------------------------------------------------------------------- Find recipes
 local fds_shared = require("__fdsl__.lib.shared")
 
-local recipe_find = fds_shared.recipe_find
-fds_recipe.find = fds_shared.recipe_find
+local find_recipe = fds_shared.find_recipe
+fds_recipe.find = fds_shared.find_recipe
 
 function fds_recipe.find_by_ingredient(ingredient_name)
   local matches = {}
@@ -39,7 +39,7 @@ end
 -- Does not change RecipePrototype.category, so should not prevent the recipe from being used in existing machines
 -- Requires new API feature from 2.0.49
 function fds_recipe.add_category(recipe_name, additional_category)
-  local recipe = recipe_find(recipe_name)
+  local recipe = find_recipe(recipe_name)
   fds_assert.ensure(data.raw["recipe-category"][additional_category], "fds_recipe.add_category: Recipe category %s does not exist.", additional_category)
   if recipe then
     if not recipe.additional_categories then
@@ -53,7 +53,7 @@ end
 
 function fds_recipe.change_time(recipe_in, modifiers)
   assert(type(modifiers) == "table")
-  local recipe, recipe_name = recipe_find(recipe_in)
+  local recipe, recipe_name = find_recipe(recipe_in)
   assert(recipe or not FDS_ASSERT, string.format("fds_recipe.change_time: recipe `%s` does not exist.", recipe_name))
   if recipe then
     local energy_required = recipe.energy_required or 0.5
@@ -75,7 +75,7 @@ end
 -- return (index, IngredientPrototype or nil): IngredientPrototype if it exists, otherwise nil.
 function fds_recipe.get_ingredient(recipe_in, ingredient_name)
   assert(type(ingredient_name) == "string")
-  local recipe, recipe_name = recipe_find(recipe_in)
+  local recipe, recipe_name = find_recipe(recipe_in)
   assert(recipe or not FDS_ASSERT, string.format("fds_recipe.get_ingredient: recipe `%s` does not exist.", recipe_name))
   if recipe and recipe.ingredients then
     for index,ingredient in pairs(recipe.ingredients) do
@@ -94,7 +94,7 @@ end
 --  index (optional, int): If set and new_ingredient is unique, inserts the ingredient at this index.
 function fds_recipe.add_ingredient(recipe_in, new_ingredient, allow_combine, index)
   assert(type(new_ingredient) == "table", string.format("fds_recipe.add_ingredient: new_ingredient for `%s` must be an IngredientPrototype.", recipe_name))
-  local recipe, recipe_name = recipe_find(recipe_in)
+  local recipe, recipe_name = find_recipe(recipe_in)
   assert(recipe or not FDS_ASSERT, string.format("fds_recipe.add_ingredient: recipe `%s` does not exist.", recipe_name))
   if recipe then
     local _,conflict = fds_recipe.get_ingredient(recipe_in, new_ingredient.name)
@@ -117,7 +117,7 @@ end
 --  modifiers (dictionary): Map of values to change. e.g. {amount=0, min_temperature=9999}
 function fds_recipe.modify_ingredient(recipe_in, ingredient_name, modifiers)
   assert(type(modifiers) == "table")
-  local recipe, recipe_name = recipe_find(recipe_in)
+  local recipe, recipe_name = find_recipe(recipe_in)
   local _,ingredient = fds_recipe.get_ingredient(recipe_in, ingredient_name)
   assert(ingredient or not FDS_ASSERT, string.format("fds_recipe.modify_ingredient: recipe `%s` does not have ingredient `%s`.", recipe_name, ingredient_name))
   if ingredient then
@@ -140,7 +140,7 @@ function fds_recipe.scale_ingredient(recipe_in, ingredient_name, scalars)
 end
 
 function fds_recipe.scale_ingredients(recipe_in, scalars)
-  local recipe, recipe_name = recipe_find(recipe_in)
+  local recipe, recipe_name = find_recipe(recipe_in)
   if recipe and recipe.ingredients then
     for key,scalar in pairs(scalars) do
       fds_assert.ensure(type(scalar) == "number", "fds_recipe.scale_ingredients: scalar `%s` is not a number.", key)
@@ -159,7 +159,7 @@ end
 --  new_ingredient (string or IngredientPrototype): Ingredient to replace with. If an IngredientPrototype is provided, replaces the whole thing. If a string, changes the ingredient name.
 --  allow_combine (optional, boolean): If false, will assert if an existing ingredient conflicts with new_ingredient. If FDS_ASSERT is set, allow_combine must be true to avoid assert.
 function fds_recipe.replace_ingredient(recipe_in, old_ingredient_name, new_ingredient, no_combine)
-  local recipe, recipe_name = recipe_find(recipe_in)
+  local recipe, recipe_name = find_recipe(recipe_in)
   assert(recipe or not FDS_ASSERT, string.format("fds_recipe.replace_ingredient: recipe `%s` does not exist.", recipe_name))
   if recipe then
     local old_index,old_ingredient = fds_recipe.get_ingredient(recipe_in, old_ingredient_name)
@@ -190,7 +190,7 @@ end
 --   new_ingredients (table of strings): Names of the ingredients to split the given ingredient into. The original ingredient CAN be included in this.
 --   allow_combine (optional, boolean)
 function fds_recipe.split_ingredient(recipe_in, old_ingredient_name, new_ingredients, no_combine)
-  local recipe, recipe_name = recipe_find(recipe_in)
+  local recipe, recipe_name = find_recipe(recipe_in)
   assert(recipe or not FDS_ASSERT, string.format("fds_recipe.split_ingredient: recipe `%s` does not exist.", recipe_name))
   if recipe then
     local old_index,old_ingredient = fds_recipe.get_ingredient(recipe_in, old_ingredient_name)
@@ -231,7 +231,7 @@ end
 --  recipe_in (RecipeID string OR table): Name of the recipe (eg "iron-gear-wheel") or the recipe itself. Nothing happens if the recipe is not defined. Will assert if FDS_ASSERT is true.
 --  ingredient_name (ItemID or FluidID string): Name of the ingredient to remove.
 function fds_recipe.remove_ingredient(recipe_name, ingredient_name)
-  local recipe, recipe_name = recipe_find(recipe_in)
+  local recipe, recipe_name = find_recipe(recipe_in)
   assert(recipe or not FDS_ASSERT, string.format("fds_recipe.remove_ingredient: recipe `%s` does not exist.", recipe_name))
   if recipe then
     for i,ingredient in pairs(recipe.ingredients) do
@@ -253,7 +253,7 @@ end
 -- return (index, ResultPrototype or nil): ResultPrototype if it exists, otherwise nil.
 function fds_recipe.get_result(recipe_in, result_name)
   assert(type(result_name) == "string")
-  local recipe, recipe_name = recipe_find(recipe_in)
+  local recipe, recipe_name = find_recipe(recipe_in)
   if recipe then
     for index,result in pairs(recipe.results or {}) do
       if result.name == result_name then
@@ -271,7 +271,7 @@ end
 --  new_index (optional, int): If set and new_result is unique, inserts the result at this index.
 function fds_recipe.add_result(recipe_in, new_result, allow_combine, new_index)
   assert(type(new_result) == "table", string.format("fds_recipe.add_result: new_result must be an ResultPrototype"))
-  local recipe, recipe_name = recipe_find(recipe_in)
+  local recipe, recipe_name = find_recipe(recipe_in)
   if recipe then
     local _,conflict = fds_recipe.get_result(recipe_name, new_result.name)
     if conflict then
@@ -295,7 +295,7 @@ end
 function fds_recipe.modify_result(recipe_in, result_name, modifiers)
   assert(type(modifiers) == "table")
   local _,result = fds_recipe.get_result(recipe_in, result_name)
-  local recipe, recipe_name = recipe_find(recipe_in)
+  local recipe, recipe_name = find_recipe(recipe_in)
   assert(result or not FDS_ASSERT, string.format("fds_recipe.modify_result: recipe `%s` does not have result `%s`.", recipe_name, result_name))
   if result then
     for key,val in pairs(modifiers) do
@@ -324,7 +324,7 @@ end
 --  new_result (string OR table): Result to replace with. If an ResultPrototype is provided, replaces the whole thing. If a string, changes the result name.
 --  no_combine (optional, boolean): If false, will assert if an existing result conflicts with new_result. If FDS_ASSERT is set, allow_combine must be true to avoid assert.
 function fds_recipe.replace_result(recipe_in, old_result_name, new_result, no_combine)
-  local recipe, recipe_name = recipe_find(recipe_in)
+  local recipe, recipe_name = find_recipe(recipe_in)
   if recipe then
     local old_index,old_result = fds_recipe.get_result(recipe_in, old_result_name)
     assert(not FDS_ASSERT or (type(old_result) == "table" and old_index ~= nil), string.format("fds_recipe.replace_result: recipe `%s` does not have result `%s`", recipe_name, old_result_name))
@@ -352,7 +352,7 @@ function fds_recipe.replace_result(recipe_in, old_result_name, new_result, no_co
 end
 
 function fds_recipe.reorder_result(recipe_in, result_name, new_index)
-  local recipe, recipe_name = recipe_find(recipe_in)
+  local recipe, recipe_name = find_recipe(recipe_in)
   if recipe then
     for i,result in pairs(recipe.results or {}) do
       if result.name == result_name then
@@ -371,7 +371,7 @@ end
 --  recipe_name (RecipeID string): Name of the recipe (eg "iron-gear-wheel"). Nothing happens if the recipe is not defined. Will assert if FDS_ASSERT is true.
 --  result_name (ItemID or FluidID string): Name of the result to remove.
 function fds_recipe.remove_result(recipe_in, result_name)
-  local recipe, recipe_name = recipe_find(recipe_in)
+  local recipe, recipe_name = find_recipe(recipe_in)
   assert(recipe or not FDS_ASSERT, string.format("fds_recipe.remove_result: recipe `%s` does not exist.", recipe_name))
   if recipe then
     for i,result in pairs(recipe.results) do
@@ -388,19 +388,19 @@ end
 -------------------------------------------------------------------------- Shared
 
 function fds_recipe.get_surface_condition(recipe_in, property_name)
-  local recipe = recipe_find(recipe_in)
+  local recipe = find_recipe(recipe_in)
   return recipe and fds_shared.get_surface_condition(recipe, property_name) or nil
 end
 
 function fds_recipe.set_surface_condition(recipe_in, new_property)
-  local recipe = recipe_find(recipe_in)
+  local recipe = find_recipe(recipe_in)
   if recipe then
     fds_shared.set_surface_condition(recipe, new_property)
   end
 end
 
 function fds_recipe.remove_surface_condition(recipe_in, property_name)
-  local recipe = recipe_find(recipe_in)
+  local recipe = find_recipe(recipe_in)
   if recipe then
     return fds_shared.remove_surface_condition(recipe, property_name)
   end
