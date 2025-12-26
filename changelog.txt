@@ -2,6 +2,7 @@
 Version: 0.3.3
 Date: ????
   Changes:
+    - fds_recipe.split_ingredient: now accepts tables with entries with a specified ratio, with the syntax ["item-name"]=split_factor
 ---------------------------------------------------------------------------------------------------
 Version: 0.3.2
 Date: 2025-12-26
