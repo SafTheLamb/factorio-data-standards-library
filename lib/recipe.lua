@@ -38,8 +38,8 @@ end
 
 -- Does not change RecipePrototype.category, so should not prevent the recipe from being used in existing machines
 -- Requires new API feature from 2.0.49
-function fds_recipe.add_category(recipe_name, additional_category)
-  local recipe = find_recipe(recipe_name)
+function fds_recipe.add_category(recipe_in, additional_category)
+  local recipe = find_recipe(recipe_in)
   fds_assert.ensure(data.raw["recipe-category"][additional_category], "fds_recipe.add_category: Recipe category %s does not exist.", additional_category)
   if recipe then
     if not recipe.additional_categories then
@@ -244,7 +244,7 @@ end
 -- Removes the provided ingredient from the given recipe.
 --  recipe_in (RecipeID string OR table): Name of the recipe (eg "iron-gear-wheel") or the recipe itself. Nothing happens if the recipe is not defined. Will assert if FDS_ASSERT is true.
 --  ingredient_name (ItemID or FluidID string): Name of the ingredient to remove.
-function fds_recipe.remove_ingredient(recipe_name, ingredient_name)
+function fds_recipe.remove_ingredient(recipe_in, ingredient_name)
   local recipe, recipe_name = find_recipe(recipe_in)
   assert(recipe or not FDS_ASSERT, string.format("fds_recipe.remove_ingredient: recipe `%s` does not exist.", recipe_name))
   if recipe then
