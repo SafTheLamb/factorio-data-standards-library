@@ -1,7 +1,11 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.3.5
 Date: ????
+  New Features:
+    - Add new fds_technology function: move_effects
+    - Add new fds_technology function: reorder_unlocks
   Changes:
+    - Update fds_technology functions to return true/false for more interface flexibility
 ---------------------------------------------------------------------------------------------------
 Version: 0.3.4
 Date: 2025-12-26
