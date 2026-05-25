@@ -92,8 +92,9 @@ function fds_technology.add_prereq(tech_in, prereq_in)
 		else
 			technology.prerequisites = {prereq_name}
 		end
+		return technology.prerequisites
 	end
-	return technology.prerequisites
+	return nil
 end
 
 function fds_technology.replace_prereq(tech_in, old_prereq_in, new_prereq_in)

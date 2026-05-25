@@ -6,6 +6,8 @@ Date: ????
     - Add new fds_technology function: reorder_unlocks
   Changes:
     - Update fds_technology functions to return true/false for more interface flexibility
+  Bugfixes:
+    - Fix crash in add_prereq when tech_in doesn't exist
 ---------------------------------------------------------------------------------------------------
 Version: 0.3.4
 Date: 2025-12-26
