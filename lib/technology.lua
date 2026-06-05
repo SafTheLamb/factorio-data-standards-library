@@ -100,9 +100,7 @@ end
 function fds_technology.replace_prereq(tech_in, old_prereq_in, new_prereq_in)
 	local technology, tech_name = find_tech(tech_in)
 	local _, old_prereq_name = find_tech(old_prereq_in)
-	log("TESTING TESTING "..old_prereq_name)
 	local prerequisite, new_prereq_name = find_tech(new_prereq_in)
-	log("TESTING TESTING "..new_prereq_name)
 	if technology and prerequisite and technology.prerequisites then
 		for i,prereq in pairs(technology.prerequisites) do
 			if prereq == old_prereq_name then
