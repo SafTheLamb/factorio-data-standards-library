@@ -2,7 +2,7 @@ local fds_assert = require("lib.assert")
 
 local fds_recipe = {}
 
--------------------------------------------------------------------------- Find recipes
+------------------------------------------------------------------------------- Find
 local fds_shared = require("__fdsl__.lib.shared")
 
 local find_recipe = fds_shared.find_recipe
@@ -14,47 +14,130 @@ function fds_recipe.find_by_ingredient(ingredient_name)
     for _,ingredient in pairs(recipe.ingredients or {}) do
       if ingredient.name == ingredient_name then
         table.insert(matches, recipe.name)
+        goto continue
       end
     end
+    ::continue::
   end
   return matches
+end
+
+function fds_recipe.find_by_category(category_name)
+  local matches = {}
+  for _,recipe in pairs(data.raw.recipe) do
+    if recipe.categories then
+      for _,category in pairs(recipe.categories) do
+        if category == category_name then
+          table.insert(matches, recipe.name)
+          goto continue
+        end
+      end
+    elseif category_name == "crafting" then
+      table.insert(matches, recipe.name)
+    end
+    ::continue::
+  end
 end
 
 function fds_recipe.find_by_result(result_name)
   local matches = {}
   for _,recipe in pairs(data.raw.recipe) do
-    if #recipe.results > 0 then
-      for _,result in pairs(recipe.results) do
-        if result.name == result_name then
-          table.insert(matches, recipe.name)
-        end
+    for _,result in pairs(recipe.results or {}) do
+      if result.name == result_name then
+        table.insert(matches, recipe.name)
+        goto continue
       end
     end
+    ::continue::
   end
   return matches
 end
 
--------------------------------------------------------------------------- General
+------------------------------------------------------------------------------- Categories
 
--- Does not change RecipePrototype.category, so should not prevent the recipe from being used in existing machines
--- Requires new API feature from 2.0.49
-function fds_recipe.add_category(recipe_in, additional_category)
+function fds_recipe.has_category(recipe_in, category_name)
   local recipe = find_recipe(recipe_in)
-  fds_assert.ensure(data.raw["recipe-category"][additional_category], "fds_recipe.add_category: Recipe category %s does not exist.", additional_category)
+  fds_assert.ensure(data.raw["recipe-category"][category_name], "fds_recipe.has_category: Recipe category `%s` does not exist.", category_name)
   if recipe then
-    if not recipe.additional_categories then
-      recipe.additional_categories = {additional_category}
-    else
-      table.insert(recipe.additional_categories, additional_category)
+    if recipe.categories == nil then
+      return category_name == "crafting"
     end
-    return recipe.additional_categories
+    for _,category in pairs(recipe.categories) do
+      if category == category_name then
+        return true
+      end
+    end
+  end
+  return false
+end
+
+function fds_recipe.add_category(recipe_in, category_name)
+  local recipe = find_recipe(recipe_in)
+  fds_assert.ensure(data.raw["recipe-category"][category_name], "fds_recipe.add_category: Recipe category `%s` does not exist.", category_name)
+  if recipe and not fds_recipe.has_category(recipe, category_name) then
+    if not recipe.categories then
+      recipe.categories = {"crafting"}
+    end
+    table.insert(recipe.categories, category_name)
+    return recipe.categories
   end
 end
 
+---@param allow_empty boolean|nil If true, will allow the categories table to be {}, which is invalid
+function fds_recipe.remove_category(recipe_in, category_name, allow_empty)
+  local recipe = find_recipe(recipe_in)
+  fds_assert.ensure(data.raw["recipe-category"][category_name], "fds_recipe.remove_category: Recipe category `%s` does not exist.", category_name)
+  if recipe then
+    if recipe.categories then
+      for i,recipe_category in pairs(recipe.categories) do
+        if category_name == recipe_category then
+          table.remove(recipe.categories, i)
+          if #recipe.categories == 0 and allow_empty ~= true then
+            recipe.categories = nil
+          end
+          return true
+        end
+      end
+    elseif category_name == "crafting" and allow_empty then
+      recipe.categories = {}
+    end
+  end
+  return false
+end
+
+
+function fds_recipe.replace_category(recipe_in, old_category, new_category)
+  local recipe = find_recipe(recipe_in)
+  fds_assert.ensure(data.raw["recipe-category"][new_category], "fds_recipe.replace_category: Recipe category `%s` does not exist.", new_category)
+  if recipe then
+    if recipe.categories then
+      for i,category in pairs(recipe.categories) do
+        if category == old_category then
+          recipe.categories[i] = new_category
+          return true
+        end
+      end
+    elseif old_category == "crafting" then
+      recipe.categories = {new_category}
+      return true
+    end
+  end
+  return false
+end
+
+-- Prefer to use the above, such as replace_category("recipe", "crafting", "hand-crafting")
+function fds_recipe.set_categories(recipe_in, categories)
+  local recipe = find_recipe(recipe_in)
+  if recipe then
+    recipe.categories = categories
+  end
+end
+
+------------------------------------------------------------------------------- Time
+
 function fds_recipe.change_time(recipe_in, modifiers)
   assert(type(modifiers) == "table")
-  local recipe, recipe_name = find_recipe(recipe_in)
-  assert(recipe or not FDS_ASSERT, string.format("fds_recipe.change_time: recipe `%s` does not exist.", recipe_name))
+  local recipe = find_recipe(recipe_in)
   if recipe then
     local energy_required = recipe.energy_required or 0.5
     if type(modifiers.scale) == "number" then
@@ -67,7 +150,7 @@ function fds_recipe.change_time(recipe_in, modifiers)
   end
 end
 
--------------------------------------------------------------------------- Ingredients
+------------------------------------------------------------------------------- Ingredients
 
 -- Gets the ingredient from the recipe, if it exists.
 --  recipe_in (RecipeID string OR table): Name of the recipe (eg "iron-gear-wheel") or the recipe itself.
