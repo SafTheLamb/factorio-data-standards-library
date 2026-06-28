@@ -37,6 +37,7 @@ function fds_recipe.find_by_category(category_name)
     end
     ::continue::
   end
+  return matches
 end
 
 function fds_recipe.find_by_result(result_name)
@@ -105,7 +106,6 @@ function fds_recipe.remove_category(recipe_in, category_name, allow_empty)
   return false
 end
 
-
 function fds_recipe.replace_category(recipe_in, old_category, new_category)
   local recipe = find_recipe(recipe_in)
   fds_assert.ensure(data.raw["recipe-category"][new_category], "fds_recipe.replace_category: Recipe category `%s` does not exist.", new_category)
@@ -133,20 +133,26 @@ function fds_recipe.set_categories(recipe_in, categories)
   end
 end
 
-------------------------------------------------------------------------------- Time
+------------------------------------------------------------------------------- Crafting time
 
-function fds_recipe.change_time(recipe_in, modifiers)
-  assert(type(modifiers) == "table")
+function fds_recipe.scale_time(recipe_in, time_scalar)
   local recipe = find_recipe(recipe_in)
   if recipe then
-    local energy_required = recipe.energy_required or 0.5
-    if type(modifiers.scale) == "number" then
-      energy_required = modifiers.scale * energy_required
-    end
-    if type(modifiers.add) == "number" then
-      energy_required = energy_required + modifiers.add
-    end
-    recipe.energy_required = energy_required
+    recipe.energy_required = (recipe.energy_required or 0.5) * time_scalar
+  end
+end
+
+function fds_recipe.add_time(recipe_in, time_to_add)
+  local recipe = find_recipe(recipe_in)
+  if recipe then
+    recipe.energy_required = (recipe.energy_required or 0.5) + time_to_add
+  end
+end
+
+function fds_recipe.set_time(recipe_in, new_time)
+  local recipe = find_recipe(recipe_in)
+  if recipe then
+    recipe.energy_required = new_time
   end
 end
 

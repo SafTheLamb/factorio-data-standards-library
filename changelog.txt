@@ -1,7 +1,21 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.4.0
-Date: ????
-  Changes:
+Date: 2026-06-24
+  Major Features:
+    - Ported to 2.1
+  Modding:
+    - fds_recipe.change_time has been removed, and its functionality split into add_time and scale_time
+    - NEW: fds_recipe.add_time
+    - NEW: fds_recipe.scale_time
+    - NEW: fds_recipe.set_time
+    - NEW: fds_recipe.find_by_category
+    - NEW: fds_recipe.has_category
+    - fds_recipe.add_category has been updated with support for `categories`
+    - NEW: fds_recipe.remove_category
+    - NEW: fds_recipe.replace_category
+    - NEW: fds_recipe.set_categories
+  Bugfixes:
+    - fds_recipe: find_by_ingredient and find_by_result don't double-count recipes with duplicate ingredients/results
 ---------------------------------------------------------------------------------------------------
 Version: 0.3.7
 Date: 2026-06-04
