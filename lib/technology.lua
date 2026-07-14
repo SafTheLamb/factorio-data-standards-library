@@ -61,8 +61,8 @@ end
 
 function fds_technology.has_prereq_recursive(tech_in, prereq_name)
 	local technology, tech_name = find_tech(tech_in)
-	fds_assert.ensure(data.raw.technology[tech_name], "fds_technology.has_prereq_recursive: Technology `%s` does not exist", tech_name)
-	local open_list = {tech_name}
+	fds_assert.ensure(technology, "fds_technology.has_prereq_recursive: Technology `%s` does not exist", tech_name)
+	local open_list = util.table.deepcopy(technology.prerequisites or {})
 	local visit_list = {}
 	local i = 0
 	while i < #open_list do
@@ -72,6 +72,29 @@ function fds_technology.has_prereq_recursive(tech_in, prereq_name)
 		if visit_tech and not visit_list[visit_name] then
 			visit_list[visit_name] = true
 			if visit_name == prereq_name then
+				return true
+			end
+			for _,visit_prereq in pairs(visit_tech.prerequisites or {}) do
+				table.insert(open_list, visit_prereq)
+			end
+		end
+	end
+	return false
+end
+
+function fds_technology.has_any_prereq_recursive(tech_in, prereq_map)
+	local technology, tech_name = find_tech(tech_in)
+	fds_assert.ensure(data.raw.technology[tech_name], "fds_technology.has_prereq_recursive: Technology `%s` does not exist", tech_name)
+	local open_list = util.table.deepcopy(technology.prerequisites or {})
+	local visit_list = {}
+	local i = 0
+	while i < #open_list do
+		i = i + 1
+		local visit_name = open_list[i]
+		local visit_tech = data.raw.technology[visit_name]
+		if visit_tech and not visit_list[visit_name] then
+			visit_list[visit_name] = true
+			if prereq_map[visit_name] then
 				return true
 			end
 			for _,visit_prereq in pairs(visit_tech.prerequisites or {}) do

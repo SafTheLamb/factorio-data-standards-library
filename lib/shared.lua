@@ -7,6 +7,9 @@ local fds_shared = {}
 function fds_shared.find_recipe(recipe_in, required)
 	local recipe = recipe_in
 	if type(recipe_in) == "string" then recipe = data.raw.recipe[recipe_in] end
+	if recipe ~= nil then
+		fds_assert.ensure(recipe.type == "recipe", "fds_shared.find_recipe: Provided table is not a RecipePrototype")
+	end
 	fds_assert.ensure_if(recipe, required, "fds_shared.find_recipe: Required recipe `%s` is missing.", recipe_name)
 	return recipe, (recipe and recipe.name)
 end
