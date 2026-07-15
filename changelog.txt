@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.4.1
-Date: ????
+Date: 2026-07-14
   Modding:
     - NEW: fds_recipe.has_any_category
     - NEW: fds_technology.has_any_prereq_recursive
