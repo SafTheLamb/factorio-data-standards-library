@@ -1,4 +1,12 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.4.1
+Date: ????
+  Modding:
+    - NEW: fds_recipe.has_any_category
+    - NEW: fds_technology.has_any_prereq_recursive
+  Bugfixes:
+    - fds_technology.has_prereq_recursive no longer counts the technology as a prerequisite for itself
+---------------------------------------------------------------------------------------------------
 Version: 0.4.0
 Date: 2026-06-24
   Major Features:
