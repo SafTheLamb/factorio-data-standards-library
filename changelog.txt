@@ -2,6 +2,7 @@
 Version: 0.4.2
 Date: ????
   Changes:
+    - Allow using fds_recipe.has_category when the category does not exist.
 ---------------------------------------------------------------------------------------------------
 Version: 0.4.1
 Date: 2026-07-14

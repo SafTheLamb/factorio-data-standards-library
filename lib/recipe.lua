@@ -65,7 +65,6 @@ end
 ---@return boolean
 function fds_recipe.has_category(recipe_in, category_name)
 	local recipe = find_recipe(recipe_in)
-	fds_assert.ensure(data.raw["recipe-category"][category_name], "fds_recipe.has_category: Recipe category `%s` does not exist.", category_name)
 	if recipe then
 		if recipe.categories == nil then
 			return category_name == "crafting"
@@ -114,7 +113,6 @@ end
 ---@param allow_empty boolean|nil If true, will allow the categories table to be {}, which is invalid
 function fds_recipe.remove_category(recipe_in, category_name, allow_empty)
 	local recipe = find_recipe(recipe_in)
-	fds_assert.ensure(data.raw["recipe-category"][category_name], "fds_recipe.remove_category: Recipe category `%s` does not exist.", category_name)
 	if recipe then
 		if recipe.categories then
 			for i,recipe_category in pairs(recipe.categories) do
