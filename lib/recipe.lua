@@ -8,9 +8,8 @@ local fds_shared = require("__fdsl__.lib.shared")
 local find_recipe = fds_shared.find_recipe
 fds_recipe.find = fds_shared.find_recipe
 
----Get all recipes with the provided ingredient
 ---@param ingredient_name string Name of the ingredient to search for
----@return table All 
+---@return table recipes All recipes with the given ingredient
 function fds_recipe.find_by_ingredient(ingredient_name)
 	local matches = {}
 	for _,recipe in pairs(data.raw.recipe) do
@@ -25,6 +24,8 @@ function fds_recipe.find_by_ingredient(ingredient_name)
 	return matches
 end
 
+---@param category_name string Name of the category to search for
+---@return table recipes All recipes with the given category
 function fds_recipe.find_by_category(category_name)
 	local matches = {}
 	for _,recipe in pairs(data.raw.recipe) do
@@ -43,6 +44,8 @@ function fds_recipe.find_by_category(category_name)
 	return matches
 end
 
+---@param result_name string Name of the result to search for
+---@return table recipes All recipes with the given result
 function fds_recipe.find_by_result(result_name)
 	local matches = {}
 	for _,recipe in pairs(data.raw.recipe) do
@@ -511,6 +514,123 @@ function fds_recipe.remove_result(recipe_in, result_name)
 		assert(not FDS_ASSERT, "fds_recipe.remove_result: recipe `%s` does not have result `%s`", recipe_name, result_name)
 	end
 	return false
+end
+
+-------------------------------------------------------------------------- Shared probability
+
+---Gets all shared probability ranges that do not yield any results.
+---@param recipe_in table|string Name of the recipe, or the RecipePrototype itself.
+---@return table|nil unused_ranges Ranges that are free for other results to be added to.
+function fds_recipe.get_unused_shared_probability(recipe_in)
+	local recipe, recipe_name = find_recipe(recipe_in)
+	if recipe then
+		local unused_ranges = {{min=0.0, max=1.0}}
+		local new_ranges = {}
+		for _,result in pairs(recipe.results or {}) do
+			if result.shared_probability then
+				::restart::
+				for i=1,#unused_ranges do
+					local range = unused_ranges[i]
+					-- If there is any intersection
+					if result.shared_probability.max >= range.min and result.shared_probability.min <= range.max then
+						local union = {
+							min=math.max(result.shared_probability.min, range.min),
+							max=math.min(result.shared_probability.max, range.max),
+						}
+						if union.max - union.min <= 0 then goto continue end
+						if union.min > range.min then
+							table.insert(unused_ranges, {min=range.min, max=union.min})
+						end
+						if union.max < range.max then
+							table.insert(unused_ranges, {min=union.max, max=range.max})
+						end
+						table.remove(unused_ranges, i)
+						goto restart
+					end
+					::continue::
+				end
+			end
+		end
+		local total = 0
+		for _,range in pairs(unused_ranges) do
+			total = total + (range.max - range.min)
+		end
+		unused_ranges.total = total
+		return unused_ranges
+	end
+	return nil
+end
+
+---Defragment the shared probability ranges to increase the amount of contiguous probability space.
+---Biases everything to start at 0, and will not break any overlaps of shared probability ranges between results.
+---@param recipe_in string|table The recipe to defragment, if it has shared probabilities.
+---@param in_unused_ranges nil|table Pre-calculated unused ranges (from get_unused_shared_probability).
+function fds_recipe.optimize_shared_probability(recipe_in, in_unused_ranges)
+	local recipe, recipe_name = find_recipe(recipe_in)
+	if recipe then
+		local unused_ranges = in_unused_ranges or fds_recipe.get_unused_shared_probability(recipe)
+		assert(unused_ranges)
+		-- TODO: Could be optimized further by walking the results and ranges in a shared loop, accumulating the amount of shift needed as we go
+		if unused_ranges.total > 0 and unused_ranges.total < 1 then
+			for i=#unused_ranges,1,-1 do
+				local  range = unused_ranges[i]
+				local range_size =  range.max - range.min
+				for _,result in pairs(recipe.results) do
+					if result.shared_probability and result.shared_probability.min >= range.max then
+						result.shared_probability.min = result.shared_probability.min - range_size
+						result.shared_probability.max = result.shared_probability.min - range_size
+					end
+				end
+			end
+		end
+	end
+end
+
+---Add a shared probability result with the given total probability.
+---Best practice is to remove unwanted shared probability results before adding new ones.
+---@param recipe_in string|table The recipe to modify.
+---@param result_in table The ResultPrototype to add, excluding the shared_probability.
+---@param probability number The size of the probability range for the new result (max - min).
+---@param allow_optimizing nil|boolean Auto-optimize probabilities if the result CAN be added, but the range is too fragmented.
+---@return table|nil shared_probability The shared probability range of the recipe added, if successful.
+function fds_recipe.add_shared_probability_result(recipe_in, result_in, probability, allow_optimizing)
+	assert(type(result_in) == "table" or type(result_in) == "string")
+	assert(type(probability) == "number" and probability > 0 and probability < 1)
+	local recipe, recipe_name = find_recipe(recipe_in)
+	if recipe then
+		local unused_ranges = fds_recipe.get_unused_shared_probability(recipe)
+		assert(unused_ranges)
+		if unused_ranges.total < probability then
+			return nil
+		end
+		local best_range_index = nil
+		local best_range_size = 1
+		for i,range in ipairs(unused_ranges) do
+			local range_size = range.max - range.min
+			-- Prefer filling smaller ranges
+			if range_size >= probability and range_size < best_range_size then
+				best_range_index = i
+				best_range_size = range_size
+			end
+		end
+		local range_start = nil
+		if best_range_index then
+			range_start = unused_ranges[best_range_index].min
+		elseif allow_optimizing ~= false then
+			fds_recipe.optimize_shared_probability(recipe, unused_ranges)
+			range_start = 1 - unused_ranges.total
+		end
+		if range_start then
+			local new_result = util.table.deepcopy(result_in)
+			new_result.shared_probability = {
+				min = range_start,
+				max = range_start + probability
+			}
+			table.insert(recipe.results, new_result)
+			return new_result.shared_probability
+		end
+	end
+	return nil
 end
 
 -------------------------------------------------------------------------- Shared
