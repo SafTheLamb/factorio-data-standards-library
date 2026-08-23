@@ -528,7 +528,7 @@ end
 ---@param recipe_in table|string Name of the recipe, or the RecipePrototype itself.
 ---@return table|nil unused_ranges Ranges that are free for other results to be added to.
 function fds_recipe.get_unused_shared_probability(recipe_in)
-	local recipe, recipe_name = find_recipe(recipe_in)
+	local recipe,_ = find_recipe(recipe_in)
 	if recipe then
 		local unused_ranges = {{min=0.0, max=1.0}}
 		local new_ranges = {}
@@ -537,17 +537,17 @@ function fds_recipe.get_unused_shared_probability(recipe_in)
 				::restart::
 				for i=1,#unused_ranges do
 					local range = unused_ranges[i]
-					-- If there is any intersection
-					if result.shared_probability.max >= range.min and result.shared_probability.min <= range.max then
+					-- Subtract any intersection
+					if result.shared_probability.max > range.min + 1e-6 and result.shared_probability.min < range.max - 1e-6 then
 						local union = {
 							min=math.max(result.shared_probability.min, range.min),
 							max=math.min(result.shared_probability.max, range.max),
 						}
 						if union.max - union.min <= 0 then goto continue end
-						if union.min > range.min then
+						if union.min - 1e-6 > range.min then
 							table.insert(unused_ranges, {min=range.min, max=union.min})
 						end
-						if union.max < range.max then
+						if union.max + 1e-6 < range.max then
 							table.insert(unused_ranges, {min=union.max, max=range.max})
 						end
 						table.remove(unused_ranges, i)
@@ -572,15 +572,15 @@ end
 ---@param recipe_in string|table The recipe to defragment, if it has shared probabilities.
 ---@param in_unused_ranges nil|table Pre-calculated unused ranges (from get_unused_shared_probability).
 function fds_recipe.optimize_shared_probability(recipe_in, in_unused_ranges)
-	local recipe, recipe_name = find_recipe(recipe_in)
+	local recipe,_ = find_recipe(recipe_in)
 	if recipe then
 		local unused_ranges = in_unused_ranges or fds_recipe.get_unused_shared_probability(recipe)
 		assert(unused_ranges)
 		-- TODO: Could be optimized further by walking the results and ranges in a shared loop, accumulating the amount of shift needed as we go
 		if unused_ranges.total > 0 and unused_ranges.total < 1 then
 			for i=#unused_ranges,1,-1 do
-				local  range = unused_ranges[i]
-				local range_size =  range.max - range.min
+				local range = unused_ranges[i]
+				local range_size = range.max - range.min
 				for _,result in pairs(recipe.results) do
 					if result.shared_probability and result.shared_probability.min >= range.max then
 						result.shared_probability.min = result.shared_probability.min - range_size
@@ -592,15 +592,6 @@ function fds_recipe.optimize_shared_probability(recipe_in, in_unused_ranges)
 	end
 end
 
-local function is_nearly_zero(x, epsilon)
-	epsilon = epsilon or 1e-6
-	return x == 0 or (x < epsilon and x > -epsilon)
-end
-
-local function is_nearly_equal(a, b, epsilon)
-	return is_nearly_zero(b - a, epsilon)
-end
-
 ---Add a shared probability result with the given total probability.
 ---Best practice is to remove unwanted shared probability results before adding new ones.
 ---@param recipe_in data.RecipeName|data.RecipePrototype The recipe to modify.
@@ -610,11 +601,11 @@ end
 ---@return table|nil shared_probability The shared probability range of the recipe added, if successful.
 function fds_recipe.add_shared_probability_result(recipe_in, result_to_add, probability, allow_optimizing)
 	assert(probability > 0 and probability < 1)
-	local recipe, recipe_name = find_recipe(recipe_in)
+	local recipe,_ = find_recipe(recipe_in)
 	if recipe then
 		local unused_ranges = fds_recipe.get_unused_shared_probability(recipe)
 		assert(unused_ranges)
-		if unused_ranges.total < probability then
+		if unused_ranges.total < probability - 1e-6 then
 			return nil
 		end
 		local best_range_index = nil
@@ -622,7 +613,7 @@ function fds_recipe.add_shared_probability_result(recipe_in, result_to_add, prob
 		for i,range in ipairs(unused_ranges) do
 			local range_size = range.max - range.min
 			-- Prefer filling smaller ranges
-			if range_size >= probability and range_size < best_range_size then
+			if range_size >= probability - 1e-6 and range_size < best_range_size then
 				best_range_index = i
 				best_range_size = range_size
 			end
@@ -653,7 +644,7 @@ end
 ---@param probability_to_add number Amount to increase probability (or decrease if negative).
 ---@return nil|number new_probability Probability of the result, if it existed.
 function fds_recipe.add_result_probability(recipe_in, result_id, probability_to_add)
-	local recipe, recipe_name = find_recipe(recipe_in)
+	local recipe,_ = find_recipe(recipe_in)
 	local result_index,result = fds_recipe.get_result(recipe, result_id)
 	if recipe and result_index then
 		assert(result)
@@ -685,11 +676,14 @@ function fds_recipe.add_result_probability(recipe_in, result_id, probability_to_
 					result.independent_probability = nil
 				end
 			end
-			if final_probability + 1e-6 > old_shared then
+			if probability_to_add < 0 or final_probability > old_shared + 1e-6 then
 				-- Changing max is prioritized
 				result.shared_probability.max = result.shared_probability.min + final_probability
 				if result.shared_probability.max > 1 then
-					result.shared_probability = {min=1-final_probability, max=1}
+					result.shared_probability = {
+						min = 1 - final_probability,
+						max = 1
+					}
 				end
 			end
 		end
