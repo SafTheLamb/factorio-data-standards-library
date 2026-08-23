@@ -378,16 +378,22 @@ end
 
 -------------------------------------------------------------------------- Results
 
--- Gets the result from the recipe, if it exists.
---  recipe_in (RecipeID string OR table): Name of the recipe (eg "iron-gear-wheel") or the recipe itself.
---  result_name (ItemID or FluidID string): Name of result to find.
--- return (index, ResultPrototype or nil): ResultPrototype if it exists, otherwise nil.
-function fds_recipe.get_result(recipe_in, result_name)
-	assert(type(result_name) == "string")
+---Gets the requested recipe result, if it exists.
+---@param recipe_in string|data.RecipePrototype The recipe or name of the recipe to search.
+---@param result_id string|integer Name or index of the result to find.
+---@return integer|nil result_index Index of the result in recipe.results.
+---@return data.FluidProductPrototype|data.ItemProductPrototype? result_prototype The result prototype, if it exists.
+function fds_recipe.get_result(recipe_in, result_id)
 	local recipe, recipe_name = find_recipe(recipe_in)
 	if recipe then
+		if recipe.results == nil then
+			return nil
+		end
+		if type(result_id) == "number" then
+			return result_id,recipe.results[result_id]
+		end
 		for index,result in pairs(recipe.results or {}) do
-			if result.name == result_name then
+			if result.name == result_id then
 				return index,result
 			end
 		end
@@ -516,7 +522,7 @@ function fds_recipe.remove_result(recipe_in, result_name)
 	return false
 end
 
--------------------------------------------------------------------------- Shared probability
+-------------------------------------------------------------------------- Result probability
 
 ---Gets all shared probability ranges that do not yield any results.
 ---@param recipe_in table|string Name of the recipe, or the RecipePrototype itself.
@@ -586,16 +592,24 @@ function fds_recipe.optimize_shared_probability(recipe_in, in_unused_ranges)
 	end
 end
 
+local function is_nearly_zero(x, epsilon)
+	epsilon = epsilon or 1e-6
+	return x == 0 or (x < epsilon and x > -epsilon)
+end
+
+local function is_nearly_equal(a, b, epsilon)
+	return is_nearly_zero(b - a, epsilon)
+end
+
 ---Add a shared probability result with the given total probability.
 ---Best practice is to remove unwanted shared probability results before adding new ones.
----@param recipe_in string|table The recipe to modify.
----@param result_in table The ResultPrototype to add, excluding the shared_probability.
+---@param recipe_in data.RecipeName|data.RecipePrototype The recipe to modify.
+---@param result_to_add data.ProductPrototype The result prototype to add, excluding the shared_probability.
 ---@param probability number The size of the probability range for the new result (max - min).
 ---@param allow_optimizing nil|boolean Auto-optimize probabilities if the result CAN be added, but the range is too fragmented.
 ---@return table|nil shared_probability The shared probability range of the recipe added, if successful.
-function fds_recipe.add_shared_probability_result(recipe_in, result_in, probability, allow_optimizing)
-	assert(type(result_in) == "table" or type(result_in) == "string")
-	assert(type(probability) == "number" and probability > 0 and probability < 1)
+function fds_recipe.add_shared_probability_result(recipe_in, result_to_add, probability, allow_optimizing)
+	assert(probability > 0 and probability < 1)
 	local recipe, recipe_name = find_recipe(recipe_in)
 	if recipe then
 		local unused_ranges = fds_recipe.get_unused_shared_probability(recipe)
@@ -621,7 +635,7 @@ function fds_recipe.add_shared_probability_result(recipe_in, result_in, probabil
 			range_start = 1 - unused_ranges.total
 		end
 		if range_start then
-			local new_result = util.table.deepcopy(result_in)
+			local new_result = util.table.deepcopy(result_to_add)
 			new_result.shared_probability = {
 				min = range_start,
 				max = range_start + probability
@@ -631,6 +645,56 @@ function fds_recipe.add_shared_probability_result(recipe_in, result_in, probabil
 		end
 	end
 	return nil
+end
+
+---Add or subtract probability from the given result. Results with 0 probability are removed.
+---@param recipe_in data.RecipeName|data.RecipePrototype  Name of the recipe to modify.
+---@param result_id string|integer Name or index of the result to modify.
+---@param probability_to_add number Amount to increase probability (or decrease if negative).
+---@return nil|number new_probability Probability of the result, if it existed.
+function fds_recipe.add_result_probability(recipe_in, result_id, probability_to_add)
+	local recipe, recipe_name = find_recipe(recipe_in)
+	local result_index,result = fds_recipe.get_result(recipe, result_id)
+	if recipe and result_index then
+		assert(result)
+		local old_shared = result.shared_probability and (result.shared_probability.max - result.shared_probability.min) or 1
+		local old_probability = (result.independent_probability or 1) * old_shared
+		local final_probability = old_probability + probability_to_add
+
+		-- Make sure probability is still (0,1)
+		if final_probability <= 0 then
+			table.remove(recipe.results, result_index)
+			return 0
+		elseif final_probability >= 1 then
+			if result.independent_probability then
+				result.independent_probability = nil
+			end
+			if result.shared_probability then
+				result.shared_probability = nil
+			end
+			return 1
+		end
+
+		if not result.shared_probability then
+			result.independent_probability = final_probability
+		else
+			-- Prioritize changing independent probability
+			if result.independent_probability then
+				result.independent_probability = result.independent_probability * (final_probability / old_probability)
+				if result.independent_probability >= 1 then
+					result.independent_probability = nil
+				end
+			end
+			if final_probability + 1e-6 > old_shared then
+				-- Changing max is prioritized
+				result.shared_probability.max = result.shared_probability.min + final_probability
+				if result.shared_probability.max > 1 then
+					result.shared_probability = {min=1-final_probability, max=1}
+				end
+			end
+		end
+		return final_probability
+	end
 end
 
 -------------------------------------------------------------------------- Shared
