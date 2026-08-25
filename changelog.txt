@@ -1,7 +1,18 @@
 ---------------------------------------------------------------------------------------------------
-Version: 0.4.3
+Version: 0.5.0
 Date: ????
-  Changes:
+  Major Features:
+    - Added new functions for handling recipes with shared probability.
+    - Added new functions for generating icons for prototypes from other prototypes.
+  Features:
+    - NEW: fds_recipe.get_unused_shared_probability
+    - NEW: fds_recipe.optimize_shared_probability
+    - NEW: fds_recipe.add_shared_probability_result
+    - NEW: fds_recipe.add_result_probability
+    - NEW ENUM: fds_icon.alignment
+    - NEW: fds_icon.alignment.is_left, fds_icon.alignment.is_right, etc
+    - NEW: fds_icon.adjust_icon
+    - NEW: fds_icon.make_corner_icon
 ---------------------------------------------------------------------------------------------------
 Version: 0.4.2
 Date: 2026-07-16
