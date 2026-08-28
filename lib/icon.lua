@@ -119,9 +119,7 @@ function fds_icon.make_corner_icon(prototype_type, prototype_name, alignment, sc
 				local icons = util.table.deepcopy(prototype.icons)
 				assert(icons)
 				fds_icon.adjust_icon(icons, scale, shift)
-				for _,icon in pairs(icons) do
-					icon.draw_background = true
-				end
+				icons[1].draw_background = true
 				return table.unpack(icons)
 			elseif prototype.icon then
 				return fds_icon.adjust_icon({icon=prototype.icon, icon_size=prototype.icon_size, draw_background=true}, scale, shift)
@@ -131,11 +129,15 @@ function fds_icon.make_corner_icon(prototype_type, prototype_name, alignment, sc
 	return {icon="__core__/graphics/empty.png"}
 end
 
+---Shortcut for making icon with shift -12 and scale 0.4
+---@param prototype_type any
+---@param prototype_name any
+---@return data.IconData
 function fds_icon.make_big_corner_icon(prototype_type, prototype_name)
 	return fds_icon.make_corner_icon(prototype_type, prototype_name, fds_icon.alignment.top_left, 0.8, 12)
 end
 
----comment
+---Converts the provided prototype to have icons, instead of icon and icon_size
 ---@param prototype table 
 ---@return boolean success Whether the prototype now has an icons table
 function fds_icon.convert_to_icons(prototype)
@@ -179,6 +181,11 @@ function fds_icon.adjust_to_fit(icons)
 	return fds_icon.adjust_icon(icons, scale, shift)
 end
 
+---Shortcut for adding a big corner icon BEHIND the target's existing icon
+---@param prototype_or_icons table|data.IconData[] Target prototype or icons to add to
+---@param source_type string Type of the prototype to get the corner icons from
+---@param source_name string Name of the prototype to get the corner icons from
+---@return boolean
 function fds_icon.add_big_corner_icon(prototype_or_icons, source_type, source_name)
 	local target_icons = prototype_or_icons
 	if prototype_or_icons.type then
@@ -190,6 +197,7 @@ function fds_icon.add_big_corner_icon(prototype_or_icons, source_type, source_na
 		local new_icons = {
 			fds_icon.make_big_corner_icon(source_type, source_name)
 		}
+		target_icons[1].draw_background = true
 		for i=#new_icons,1,-1 do
 			table.insert(target_icons, new_icons[i])
 		end

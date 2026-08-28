@@ -13,6 +13,10 @@ Date: ????
     - NEW: fds_icon.alignment.is_left, fds_icon.alignment.is_right, etc
     - NEW: fds_icon.adjust_icon
     - NEW: fds_icon.make_corner_icon
+    - NEW: fds_icon.make_big_corner_icon
+    - NEW: fds_icon.adjust_to_fit
+    - NEW: fds_icon.add_big_corner_icon
+    - NEW: fds_util.get_prototype
 ---------------------------------------------------------------------------------------------------
 Version: 0.4.2
 Date: 2026-07-16
