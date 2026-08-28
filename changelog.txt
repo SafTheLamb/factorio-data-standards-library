@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.5.0
-Date: ????
+Date: 2026-08-27
   Major Features:
     - Added new functions for handling recipes with shared probability.
     - Added new functions for generating icons for prototypes from other prototypes.
