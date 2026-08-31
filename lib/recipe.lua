@@ -8,8 +8,9 @@ local fds_shared = require("__fdsl__.lib.shared")
 local find_recipe = fds_shared.find_recipe
 fds_recipe.find = fds_shared.find_recipe
 
+---Gets all recipes that have the given ingredient,
 ---@param ingredient_name string Name of the ingredient to search for
----@return table recipes All recipes with the given ingredient
+---@return table recipes All matching recipes
 function fds_recipe.find_by_ingredient(ingredient_name)
 	local matches = {}
 	for _,recipe in pairs(data.raw.recipe) do
@@ -24,6 +25,7 @@ function fds_recipe.find_by_ingredient(ingredient_name)
 	return matches
 end
 
+---
 ---@param category_name string Name of the category to search for
 ---@return table recipes All recipes with the given category
 function fds_recipe.find_by_category(category_name)
@@ -593,12 +595,12 @@ function fds_recipe.optimize_shared_probability(recipe_in, in_unused_ranges)
 end
 
 ---Add a shared probability result with the given total probability.
----Best practice is to remove unwanted shared probability results before adding new ones.
+---Best practice is to remove unwanted results with shared probability before adding new ones.
 ---@param recipe_in data.RecipeName|data.RecipePrototype The recipe to modify.
 ---@param result_to_add data.ProductPrototype The result prototype to add, excluding the shared_probability.
 ---@param probability number The size of the probability range for the new result (max - min).
----@param allow_optimizing nil|boolean Auto-optimize probabilities if the result CAN be added, but the range is too fragmented.
----@return table|nil shared_probability The shared probability range of the recipe added, if successful.
+---@param allow_optimizing boolean? Auto-optimize probabilities if the result CAN be added, but the range is too fragmented.
+---@return table? shared_probability The shared probability range of the recipe added, if successful.
 function fds_recipe.add_shared_probability_result(recipe_in, result_to_add, probability, allow_optimizing)
 	assert(probability > 0 and probability < 1)
 	local recipe,_ = find_recipe(recipe_in)
@@ -642,7 +644,7 @@ end
 ---@param recipe_in data.RecipeName|data.RecipePrototype  Name of the recipe to modify.
 ---@param result_id string|integer Name or index of the result to modify.
 ---@param probability_to_add number Amount to increase probability (or decrease if negative).
----@return nil|number new_probability Probability of the result, if it existed.
+---@return number? new_probability Probability of the result, if it existed.
 function fds_recipe.add_result_probability(recipe_in, result_id, probability_to_add)
 	local recipe,_ = find_recipe(recipe_in)
 	local result_index,result = fds_recipe.get_result(recipe, result_id)
@@ -693,6 +695,10 @@ end
 
 -------------------------------------------------------------------------- Shared
 
+---comment
+---@param recipe_in any
+---@param property_name any
+---@return unknown|nil
 function fds_recipe.get_surface_condition(recipe_in, property_name)
 	local recipe = find_recipe(recipe_in)
 	return recipe and fds_shared.get_surface_condition(recipe, property_name) or nil
