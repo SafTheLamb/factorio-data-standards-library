@@ -77,7 +77,9 @@ function fds_icon.adjust_icon(icon, in_scale, in_shift)
 end
 
 ---Constructs an icon for the given prototype, if it exists. Supports prototypes with multiple icons.
----@param prototype_type string Type of the prototype to get the icon from, or nil to use a file directly.
+---This returns an unpacked list of icons, so you can use this within the icons={} definition.
+---e.g: recipe.icons = {{icon="__modname__/graphics/icons/red-circle.png"}, fds_icon.make_corner_icon("item", "blue-circle", fds_icon.alignment.top_left)}
+---@param prototype_type string Type of the prototype to get the icon from, or nil to use an image file directly.
 ---@param prototype_name string Name of the prototype to get the icon from, or the mod-relative filepath.
 ---@param alignment fds_icon.alignment Which "corner" to put the sub-icon in.
 ---@param scale double? How much to shrink the corner icon. Defaults to 0.5.
@@ -105,6 +107,7 @@ function fds_icon.make_corner_icon(prototype_type, prototype_name, alignment, sc
 			return fds_icon.adjust_icon({icon=prototype, draw_background=true}, scale, shift)
 		else
 			if not (prototype.icon or prototype.icons) and prototype_type == "recipe" then
+				---@cast prototype data.RecipePrototype
 				local main_product = util.get_recipe_main_product(prototype, util.normalize_recipe_products(prototype))
 
 				for _,subtype in pairs(defines.prototypes[main_product.type]) do
@@ -122,6 +125,8 @@ function fds_icon.make_corner_icon(prototype_type, prototype_name, alignment, sc
 				icons[1].draw_background = true
 				return table.unpack(icons)
 			elseif prototype.icon then
+				--This could be anything, but assume it has the typical prototype icon definition.
+				---@cast prototype data.ItemPrototype
 				return fds_icon.adjust_icon({icon=prototype.icon, icon_size=prototype.icon_size, draw_background=true}, scale, shift)
 			end
 		end

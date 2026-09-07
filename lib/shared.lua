@@ -4,12 +4,19 @@ local fds_shared = {}
 
 -------------------------------------------------------------------------- Find prototypes
 
+---Gets the given recipe if it exists, either by name (e.g. "iron-gear-wheel"), or the literal recipe prototype itself.
+---This may seem odd, but this allows many functions to accept either a recipe name, or modify a recipe that hasn't been added to data.raw.recipes
+---@param recipe_in string|data.RecipePrototype 
+---@param required any
+---@return data.RecipePrototype?
+---@return string?
 function fds_shared.find_recipe(recipe_in, required)
 	local recipe = recipe_in
 	if type(recipe_in) == "string" then recipe = data.raw.recipe[recipe_in] end
 	if recipe ~= nil then
 		fds_assert.ensure(recipe.type == "recipe", "fds_shared.find_recipe: Provided table is not a RecipePrototype")
 	end
+	---@cast recipe data.RecipePrototype
 	fds_assert.ensure_if(recipe, required, "fds_shared.find_recipe: Required recipe `%s` is missing.", recipe_name)
 	return recipe, (recipe and recipe.name)
 end
@@ -20,7 +27,7 @@ function fds_shared.get_surface_condition(prototype, property_name)
 	assert(type(property_name) == "string")
 	if feature_flags["space_travel"] then
 		if prototype.surface_conditions then
-			for _,condition in pairs(surface_conditions) do
+			for _,condition in pairs(prototype.surface_conditions) do
 				if condition.property == property_name then
 					return condition
 				end

@@ -5,12 +5,13 @@ local fds_recipe = {}
 ------------------------------------------------------------------------------- Find
 local fds_shared = require("__fdsl__.lib.shared")
 
+
 local find_recipe = fds_shared.find_recipe
 fds_recipe.find = fds_shared.find_recipe
 
----Gets all recipes that have the given ingredient,
----@param ingredient_name string Name of the ingredient to search for
----@return table recipes All matching recipes
+---Gets all recipes that have the given ingredient.
+---@param ingredient_name string Name of the ingredient to search for.
+---@return table recipes All matching recipes.
 function fds_recipe.find_by_ingredient(ingredient_name)
 	local matches = {}
 	for _,recipe in pairs(data.raw.recipe) do
@@ -25,9 +26,9 @@ function fds_recipe.find_by_ingredient(ingredient_name)
 	return matches
 end
 
----
----@param category_name string Name of the category to search for
----@return table recipes All recipes with the given category
+---Returns all recipes that have the given crafting category.
+---@param category_name string Name of the category to search for.
+---@return data.RecipePrototype[] recipes All recipes with the given category.
 function fds_recipe.find_by_category(category_name)
 	local matches = {}
 	for _,recipe in pairs(data.raw.recipe) do
@@ -46,8 +47,9 @@ function fds_recipe.find_by_category(category_name)
 	return matches
 end
 
----@param result_name string Name of the result to search for
----@return table recipes All recipes with the given result
+---Returns all recipes that have the given result.
+---@param result_name string Name of the result to search for.
+---@return data.RecipePrototype[] recipes All recipes with the given result.
 function fds_recipe.find_by_result(result_name)
 	local matches = {}
 	for _,recipe in pairs(data.raw.recipe) do
@@ -64,10 +66,10 @@ end
 
 ------------------------------------------------------------------------------- Categories
 
----comment
----@param recipe_in any
----@param category_name any
----@return boolean
+---Checks whether the recipe has the given crafting category.
+---@param recipe_in string|data.RecipePrototype The recipe to check.
+---@param category_name string Name of the category to check.
+---@return boolean has_category Returns true if the recipe has the given crafting category.
 function fds_recipe.has_category(recipe_in, category_name)
 	local recipe = find_recipe(recipe_in)
 	if recipe then
@@ -83,10 +85,10 @@ function fds_recipe.has_category(recipe_in, category_name)
 	return false
 end
 
----Check
----@param recipe_in string|table Recipe to check. Either a RecipePrototype or 
----@param category_map table A table with [value] == true. A list can be converted to a map with util.list_to_map from the __core__.lua
----@return boolean Whether the 
+---Checks whether the recipe has any of the given crafting categories.
+---@param recipe_in string|data.RecipePrototype The recipe to check.
+---@param category_map table A table with ["category-name"] = true. A list can be converted to a map with util.list_to_map from __core__.lualib.util
+---@return boolean any_contained Returns true if the recipe has any of the given crafting categories.
 function fds_recipe.has_any_category(recipe_in, category_map)
 	local recipe = find_recipe(recipe_in)
 	fds_assert.ensure(type(category_map) == "table")
@@ -103,19 +105,35 @@ function fds_recipe.has_any_category(recipe_in, category_map)
 	return false
 end
 
+---Adds the given crafting category to the recipe, if it doesn't already have it.
+---@param recipe_in string|data.RecipePrototype The recpie to check.
+---@param category_name string Name of the 
+---@return string[]? categories New list of categories 
 function fds_recipe.add_category(recipe_in, category_name)
 	local recipe = find_recipe(recipe_in)
 	fds_assert.ensure(data.raw["recipe-category"][category_name], "fds_recipe.add_category: Recipe category `%s` does not exist.", category_name)
-	if recipe and not fds_recipe.has_category(recipe, category_name) then
+	if recipe then
 		if not recipe.categories then
-			recipe.categories = {"crafting"}
+			recipe.categories = {category_name}
+			return recipe.categories
 		end
-		table.insert(recipe.categories, category_name)
+
+		if not fds_recipe.has_category(recipe, category_name) then
+			table.insert(recipe.categories, category_name)
+		end
+
 		return recipe.categories
 	end
 end
 
----@param allow_empty boolean|nil If true, will allow the categories table to be {}, which is invalid
+---Removes the given crafting category from the recipe.
+---Since {} is an invalid entry for data.RecipePrototype.categories, the default behavior is setting the categories to nil.
+---This implicitly means that the recipe is added to the default "crafting" crafting category.
+---Either use allow_empty to let it become {}, or add categories first before removing to avoid this scenario.
+---@param recipe_in string|data.RecipePrototype The recipe to modify.
+---@param category_name string Name of the category to remove.
+---@param allow_empty boolean? If true, will allow the categories table to be {}, which is normally invalid.
+---@return boolean was_removed Returns true if the recipe 
 function fds_recipe.remove_category(recipe_in, category_name, allow_empty)
 	local recipe = find_recipe(recipe_in)
 	if recipe then
@@ -136,6 +154,12 @@ function fds_recipe.remove_category(recipe_in, category_name, allow_empty)
 	return false
 end
 
+---Replaces the given crafting category for the recipe with another category.
+---Will NOT add new_category if old_category was not present.
+---@param recipe_in string|data.RecipePrototype The recipe to modify.
+---@param old_category string
+---@param new_category string
+---@return boolean was_replaced Returns true if the category was replaced.
 function fds_recipe.replace_category(recipe_in, old_category, new_category)
 	local recipe = find_recipe(recipe_in)
 	fds_assert.ensure(data.raw["recipe-category"][new_category], "fds_recipe.replace_category: Recipe category `%s` does not exist.", new_category)
@@ -155,7 +179,9 @@ function fds_recipe.replace_category(recipe_in, old_category, new_category)
 	return false
 end
 
--- Prefer to use the above, such as replace_category("recipe", "crafting", "hand-crafting")
+---Prefer to use the above, such as replace_category("recipe", "crafting", "hand-crafting"). This is very prone to causing compatibility issues.
+---@param recipe_in string|data.RecipePrototype The recipe to modify.
+---@param categories string[]
 function fds_recipe.set_categories(recipe_in, categories)
 	local recipe = find_recipe(recipe_in)
 	if recipe then
@@ -165,20 +191,44 @@ end
 
 ------------------------------------------------------------------------------- Crafting time
 
-function fds_recipe.scale_time(recipe_in, time_scalar)
+---Gets how long it takes to craft a recipe at crafting speed 1.
+---@param recipe_in string|data.RecipePrototype The recipe to check.
+---@return number? energy_required The crafting time, if the recipe exists.
+function fds_recipe.get_time(recipe_in)
 	local recipe = find_recipe(recipe_in)
 	if recipe then
-		recipe.energy_required = (recipe.energy_required or 0.5) * time_scalar
+		return recipe.energy_required or 0.5
 	end
 end
 
+---Multiplies the crafting time of the given recipe.
+---@param recipe_in string|data.RecipePrototype The recipe to modify.
+---@param time_scalar number How much to multiply the energy_required by. Must be positive
+---@return number? energy_required The new crafting time.
+function fds_recipe.scale_time(recipe_in, time_scalar)
+	local recipe = find_recipe(recipe_in)
+	fds_assert.ensure(time_scalar > 0, "Number for scale_time must be positive.")
+	if recipe then
+		recipe.energy_required = (recipe.energy_required or 0.5) * time_scalar
+		return recipe.energy_required
+	end
+end
+
+---Increases the crafting time of the given recipe.
+---@param recipe_in string|data.RecipePrototype The recipe to modify.
+---@param time_to_add number Amount to increase the crafting time.
+---@return number? energy_required The new crafting time.
 function fds_recipe.add_time(recipe_in, time_to_add)
 	local recipe = find_recipe(recipe_in)
 	if recipe then
 		recipe.energy_required = (recipe.energy_required or 0.5) + time_to_add
+		return recipe.energy_required
 	end
 end
 
+---Override the crafting time of the given recipe.
+---@param recipe_in string|data.RecipePrototype The recipe to modify.
+---@param new_time number Amount to set the crafting time to.
 function fds_recipe.set_time(recipe_in, new_time)
 	local recipe = find_recipe(recipe_in)
 	if recipe then
@@ -188,10 +238,11 @@ end
 
 ------------------------------------------------------------------------------- Ingredients
 
--- Gets the ingredient from the recipe, if it exists.
---  recipe_in (RecipeID string OR table): Name of the recipe (eg "iron-gear-wheel") or the recipe itself.
---  ingredient_name (ItemID or FluidID string): Name of ingredient to find.
--- return (index, IngredientPrototype or nil): IngredientPrototype if it exists, otherwise nil.
+---Gets the ingredient from the recipe, if it exists.
+---@param recipe_in string|data.RecipePrototype Name of the recipe (eg "iron-gear-wheel") or the recipe itself.
+---@param ingredient_name data.ItemName|data.FluidName Name of ingredient to find.
+---@return integer? index Index in the ingredient list, if it exists.
+---@return data.IngredientPrototype? ingredient The ingredient prototype, if it exists.
 function fds_recipe.get_ingredient(recipe_in, ingredient_name)
 	assert(type(ingredient_name) == "string")
 	local recipe, recipe_name = find_recipe(recipe_in)
