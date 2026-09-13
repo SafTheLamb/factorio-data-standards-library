@@ -1,13 +1,13 @@
 {
-  "name": "fdsl",
-  "title": "Factorio Data Standards Library",
-  "description": "A handful of helpful functions for mods to change prototypes during the data stage.",
-  "author": "SafTheLamb",
-  "version": "0.5.1",
-  "factorio_version": "2.1",
-  "homepage": "https://github.com/SafTheLamb/factorio-data-standards-library",
-  "package": {
-    "ignore": [".gitignore", "tests", "data.lua"]
-  },
-  "dependencies": []
+	"name": "fdsl",
+	"title": "Factorio Data Standards Library",
+	"description": "A handful of helpful functions for mods to change prototypes during the data stage.",
+	"author": "SafTheLamb",
+	"version": "0.5.1",
+	"factorio_version": "2.1",
+	"homepage": "https://github.com/SafTheLamb/factorio-data-standards-library",
+	"package": {
+		"ignore": [".gitignore", "tests", "data.lua"]
+	},
+	"dependencies": []
 }

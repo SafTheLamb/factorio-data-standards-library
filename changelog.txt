@@ -1,7 +1,11 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.5.1
 Date: ????
-  Changes:
+  Minor Features:
+    - BREAKING CHANGE: fds_icon.alignment.is_left, etc functions have been renamed to fds_icon.is_left_alignment
+    - I really try to not make API changes anymore, but this was causing issues with documentation generation
+    - Hopefully it's a new enough feature nobody was using those specific functions yet
+    - NEW: fds_icon.to_layers
 ---------------------------------------------------------------------------------------------------
 Version: 0.5.0
 Date: 2026-08-27

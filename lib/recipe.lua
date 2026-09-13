@@ -1,10 +1,11 @@
-local fds_assert = require("lib.assert")
+local fds_assert = require("__fdsl__.lib.assert")
+local fds_shared = require("__fdsl__.lib.shared")
 
+---@class fds_recipe
 local fds_recipe = {}
 
 ------------------------------------------------------------------------------- Find
-local fds_shared = require("__fdsl__.lib.shared")
-
+---@section find
 
 local find_recipe = fds_shared.find_recipe
 fds_recipe.find = fds_shared.find_recipe
@@ -65,6 +66,7 @@ function fds_recipe.find_by_result(result_name)
 end
 
 ------------------------------------------------------------------------------- Categories
+---@section categories
 
 ---Checks whether the recipe has the given crafting category.
 ---@param recipe_in string|data.RecipePrototype The recipe to check.
@@ -94,7 +96,7 @@ function fds_recipe.has_any_category(recipe_in, category_map)
 	fds_assert.ensure(type(category_map) == "table")
 	if recipe then
 		if recipe.categories == nil then
-			return (category_map["crafting"] == true)
+			return category_map["crafting"] == true
 		end
 		for _,category in pairs(recipe.categories) do
 			if category_map[category] == true then
@@ -106,9 +108,9 @@ function fds_recipe.has_any_category(recipe_in, category_map)
 end
 
 ---Adds the given crafting category to the recipe, if it doesn't already have it.
----@param recipe_in string|data.RecipePrototype The recpie to check.
----@param category_name string Name of the 
----@return string[]? categories New list of categories 
+---@param recipe_in string|data.RecipePrototype The recpie to modify.
+---@param category_name string Name of the category to add.
+---@return string[]? categories New list of categories for the recipe.
 function fds_recipe.add_category(recipe_in, category_name)
 	local recipe = find_recipe(recipe_in)
 	fds_assert.ensure(data.raw["recipe-category"][category_name], "fds_recipe.add_category: Recipe category `%s` does not exist.", category_name)
@@ -156,10 +158,11 @@ end
 
 ---Replaces the given crafting category for the recipe with another category.
 ---Will NOT add new_category if old_category was not present.
+---If new_category already exists, old_category will be removed
 ---@param recipe_in string|data.RecipePrototype The recipe to modify.
----@param old_category string
----@param new_category string
----@return boolean was_replaced Returns true if the category was replaced.
+---@param old_category string The category to replace.
+---@param new_category string The new category to give the recipe.
+---@return boolean was_replaced Returns true if the replace was new category was successfully applied.
 function fds_recipe.replace_category(recipe_in, old_category, new_category)
 	local recipe = find_recipe(recipe_in)
 	fds_assert.ensure(data.raw["recipe-category"][new_category], "fds_recipe.replace_category: Recipe category `%s` does not exist.", new_category)
@@ -167,9 +170,16 @@ function fds_recipe.replace_category(recipe_in, old_category, new_category)
 		if recipe.categories then
 			for i,category in pairs(recipe.categories) do
 				if category == old_category then
-					recipe.categories[i] = new_category
+					if fds_recipe.has_category(recipe, new_category) then
+						table.remove(recipe.categories, i)
+					else
+						recipe.categories[i] = new_category
+					end
 					return true
 				end
+			end
+			if fds_recipe.has_category(recipe, new_category) then
+				return true
 			end
 		elseif old_category == "crafting" then
 			recipe.categories = {new_category}
@@ -190,6 +200,7 @@ function fds_recipe.set_categories(recipe_in, categories)
 end
 
 ------------------------------------------------------------------------------- Crafting time
+---@section time
 
 ---Gets how long it takes to craft a recipe at crafting speed 1.
 ---@param recipe_in string|data.RecipePrototype The recipe to check.
@@ -237,6 +248,7 @@ function fds_recipe.set_time(recipe_in, new_time)
 end
 
 ------------------------------------------------------------------------------- Ingredients
+---@section ingredients
 
 ---Gets the ingredient from the recipe, if it exists.
 ---@param recipe_in string|data.RecipePrototype Name of the recipe (eg "iron-gear-wheel") or the recipe itself.
@@ -430,6 +442,7 @@ function fds_recipe.remove_ingredient(recipe_in, ingredient_name)
 end
 
 -------------------------------------------------------------------------- Results
+---@section results
 
 ---Gets the requested recipe result, if it exists.
 ---@param recipe_in string|data.RecipePrototype The recipe or name of the recipe to search.
@@ -509,10 +522,10 @@ function fds_recipe.scale_result(recipe_in, result_name, scalars)
 end
 
 --- Replaces.
--- @param1 recipe_in (RecipeID string OR table): Name of the recipe, (eg "iron-gear-wheel") or the recipe itself. Nothing happens if the recipe is not defined. Will assert if FDS_ASSERT is true.
---  old_result_name (ItemID or FluidID string): Name of result to replace (eg "iron-plate")
---  new_result (string OR table): Result to replace with. If an ResultPrototype is provided, replaces the whole thing. If a string, changes the result name.
---  no_combine (optional, boolean): If false, will assert if an existing result conflicts with new_result. If FDS_ASSERT is set, allow_combine must be true to avoid assert.
+---@param recipe_in string|data.RecipePrototype
+---@param old_result_name string Name of result to replace (eg "iron-plate")
+---@param new_result string|data.ItemProductPrototype|data.FluidProductPrototype Result to replace with. If an ResultPrototype is provided, replaces the whole thing. If a string, changes the result name.
+---@param no_combine boolean? If false, will assert if an existing result conflicts with new_result. If FDS_ASSERT is set, allow_combine must be true to avoid assert.
 function fds_recipe.replace_result(recipe_in, old_result_name, new_result, no_combine)
 	local recipe, recipe_name = find_recipe(recipe_in)
 	if recipe then
@@ -557,9 +570,9 @@ function fds_recipe.reorder_result(recipe_in, result_name, new_index)
 	return false
 end
 
--- Removes the provided result from the given recipe.
---  recipe_name (RecipeID string): Name of the recipe (eg "iron-gear-wheel"). Nothing happens if the recipe is not defined. Will assert if FDS_ASSERT is true.
---  result_name (ItemID or FluidID string): Name of the result to remove.
+---Removes the provided result from the given recipe.
+---@param recipe_in string Name of the recipe (eg "iron-gear-wheel"). Nothing happens if the recipe is not defined. Will assert if FDS_ASSERT is true.
+---@param result_name string Name of the result to remove.
 function fds_recipe.remove_result(recipe_in, result_name)
 	local recipe, recipe_name = find_recipe(recipe_in)
 	assert(recipe or not FDS_ASSERT, string.format("fds_recipe.remove_result: recipe `%s` does not exist.", recipe_name))
@@ -576,6 +589,7 @@ function fds_recipe.remove_result(recipe_in, result_name)
 end
 
 -------------------------------------------------------------------------- Result probability
+---@section probability
 
 ---Gets all shared probability ranges that do not yield any results.
 ---@param recipe_in table|string Name of the recipe, or the RecipePrototype itself.
@@ -745,6 +759,7 @@ function fds_recipe.add_result_probability(recipe_in, result_id, probability_to_
 end
 
 -------------------------------------------------------------------------- Shared
+---@section shared
 
 ---comment
 ---@param recipe_in any

@@ -1,55 +1,56 @@
 local math2d = require("__core__.lualib.math2d")
 local fds_util = require("__fdsl__.lib.util")
 
+---@class fds_icon
 local fds_icon = {
-	alignment = {
-		top_left =      "top-left",
-		middle_left =   "middle-left",
-		bottom_left =   "bottom-left",
-		top_center =    "top-center",
-		middle_center = "middle-center",
-		bottom_center = "bottom-center",
-		top_right =     "top-right",
-		middle_right =  "middle-right",
-		bottom_right =  "bottom-right"
-	}
 }
 
----@alias fds_icon.alignment (string)
+---@enum fds_icon.alignment
+fds_icon.alignment = {
+	top_left =      "top-left",
+	middle_left =   "middle-left",
+	bottom_left =   "bottom-left",
+	top_center =    "top-center",
+	middle_center = "middle-center",
+	bottom_center = "bottom-center",
+	top_right =     "top-right",
+	middle_right =  "middle-right",
+	bottom_right =  "bottom-right"
+}
 
 ---@param alignment fds_icon.alignment
 ---@return boolean
-function fds_icon.alignment.is_left(alignment)
+function fds_icon.is_left_alignment(alignment)
 	return alignment == fds_icon.alignment.top_left or alignment == fds_icon.alignment.middle_left or alignment == fds_icon.alignment.bottom_left
 end
 
 ---@param alignment fds_icon.alignment
 ---@return boolean
-function fds_icon.alignment.is_center(alignment)
+function fds_icon.is_center_alignment(alignment)
 	return alignment == fds_icon.alignment.top_center or alignment == fds_icon.alignment.middle_center or alignment == fds_icon.alignment.bottom_center
 end
 
 ---@param alignment fds_icon.alignment
 ---@return boolean
-function fds_icon.alignment.is_right(alignment)
+function fds_icon.is_right_alignment(alignment)
 	return alignment == fds_icon.alignment.top_right or alignment == fds_icon.alignment.middle_right or alignment == fds_icon.alignment.bottom_right
 end
 
 ---@param alignment fds_icon.alignment
 ---@return boolean
-function fds_icon.alignment.is_top(alignment)
+function fds_icon.is_top_alignment(alignment)
 	return alignment == fds_icon.alignment.top_left or alignment == fds_icon.alignment.top_center or alignment == fds_icon.alignment.top_right
 end
 
 ---@param alignment fds_icon.alignment
 ---@return boolean
-function fds_icon.alignment.is_middle(alignment)
+function fds_icon.is_middle_alignment(alignment)
 	return alignment == fds_icon.alignment.middle_left or alignment == fds_icon.alignment.middle_center or alignment == fds_icon.alignment.middle_right
 end
 
 ---@param alignment fds_icon.alignment
 ---@return boolean
-function fds_icon.alignment.is_bottom(alignment)
+function fds_icon.is_bottom_alignment(alignment)
 	return alignment == fds_icon.alignment.bottom_left or alignment == fds_icon.alignment.bottom_center or alignment == fds_icon.alignment.bottom_right
 end
 
@@ -79,30 +80,38 @@ end
 ---Constructs an icon for the given prototype, if it exists. Supports prototypes with multiple icons.
 ---This returns an unpacked list of icons, so you can use this within the icons={} definition.
 ---e.g: recipe.icons = {{icon="__modname__/graphics/icons/red-circle.png"}, fds_icon.make_corner_icon("item", "blue-circle", fds_icon.alignment.top_left)}
----@param prototype_type string Type of the prototype to get the icon from, or nil to use an image file directly.
+---@param prototype_type string|nil Type of the prototype to get the icon from, or nil to use an image file directly.
 ---@param prototype_name string Name of the prototype to get the icon from, or the mod-relative filepath.
 ---@param alignment fds_icon.alignment Which "corner" to put the sub-icon in.
 ---@param scale double? How much to shrink the corner icon. Defaults to 0.5.
 ---@param shift_amount double? Overrides the auto-calculated shift amount.
 ---@return data.IconData,data.IconData?,data.IconData?,data.IconData?,data.IconData?,data.IconData?,data.IconData?,data.IconData?,data.IconData?,data.IconData?
 function fds_icon.make_corner_icon(prototype_type, prototype_name, alignment, scale, shift_amount)
-	local prototype = prototype_type and data.raw[prototype_type][prototype_name] or prototype_name
+	scale = scale or 0.5
+	shift_amount = shift_amount or (16 * (1 - scale))
+	local shift = {x=0, y=0}
+
+	if fds_icon.is_left_alignment(alignment) then
+		shift.x = -shift_amount
+	elseif fds_icon.is_right_alignment(alignment) then
+		shift.x = shift_amount
+	end
+	if fds_icon.is_top_alignment(alignment) then
+		shift.y = -shift_amount
+	elseif fds_icon.is_bottom_alignment(alignment) then
+		shift.y = shift_amount
+	end
+	if not prototype_type then
+		return fds_icon.adjust_icon({icon=prototype_name, draw_background=true}, scale, shift)
+	end
+	local prototype = data.raw[prototype_type] and data.raw[prototype_type][prototype_name]
+	if not prototype and defines.prototypes[prototype_type] then
+		for alt_type,_ in pairs(defines.prototypes[prototype_type]) do
+			prototype = data.raw[alt_type][prototype_name]
+			if prototype then break end
+		end
+	end
 	if prototype then
-		scale = scale or 0.5
-		shift_amount = shift_amount or (16 * (1 - scale))
-		local shift = {x=0, y=0}
-
-		if fds_icon.alignment.is_left(alignment) then
-			shift.x = -shift_amount
-		elseif fds_icon.alignment.is_right(alignment) then
-			shift.x = shift_amount
-		end
-		if fds_icon.alignment.is_top(alignment) then
-			shift.y = -shift_amount
-		elseif fds_icon.alignment.is_bottom(alignment) then
-			shift.y = shift_amount
-		end
-
 		if type(prototype) == "string" then
 			return fds_icon.adjust_icon({icon=prototype, draw_background=true}, scale, shift)
 		else
@@ -210,6 +219,23 @@ function fds_icon.add_big_corner_icon(prototype_or_icons, source_type, source_na
 		return true
 	end
 	return false
+end
+
+---Converts icons to sprites.
+---e.g: `layers = fds_icon.to_layers(data.raw.recipe["scrap-recycling"].icons)`
+---@param icons data.IconData[] Icons to convert
+---@return data.Sprite[] sprites New sprite layers
+function fds_icon.to_layers(icons)
+	---@type data.Sprite[]|data.IconData[]
+	local layers = util.table.deepcopy(icons)
+	for i,layer in ipairs(layers) do
+		layer.filename = layer.filename or layer.icon
+		layer.size = layer.icon_size or 64
+		layer.scale = layer.scale or 0.5
+		layer.icon = nil
+		layer.icon_size = nil
+	end
+	return layers
 end
 
 return fds_icon
