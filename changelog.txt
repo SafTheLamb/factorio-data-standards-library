@@ -2,6 +2,7 @@
 Version: 0.5.2
 Date: ????
   Changes:
+    - Add optional index parameter to fds_recipe.add_shared_probability_result
 ---------------------------------------------------------------------------------------------------
 Version: 0.5.1
 Date: 2026-09-12

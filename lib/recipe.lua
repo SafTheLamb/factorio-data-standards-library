@@ -664,9 +664,10 @@ end
 ---@param recipe_in data.RecipeName|data.RecipePrototype The recipe to modify.
 ---@param result_to_add data.ProductPrototype The result prototype to add, excluding the shared_probability.
 ---@param probability number The size of the probability range for the new result (max - min).
----@param allow_optimizing boolean? Auto-optimize probabilities if the result CAN be added, but the range is too fragmented.
+---@param allow_optimizing boolean? (default=true) Auto-optimize probabilities if the result CAN be added, but the range is too fragmented.
+---@param index integer? Index within results to insert the new ingredient.
 ---@return table? shared_probability The shared probability range of the recipe added, if successful.
-function fds_recipe.add_shared_probability_result(recipe_in, result_to_add, probability, allow_optimizing)
+function fds_recipe.add_shared_probability_result(recipe_in, result_to_add, probability, allow_optimizing, index)
 	assert(probability > 0 and probability < 1)
 	local recipe,_ = find_recipe(recipe_in)
 	if recipe then
@@ -698,7 +699,11 @@ function fds_recipe.add_shared_probability_result(recipe_in, result_to_add, prob
 				min = range_start,
 				max = range_start + probability
 			}
-			table.insert(recipe.results, new_result)
+			if index then
+				table.insert(recipe.results, index, new_result)
+			else
+				table.insert(recipe.results, new_result)
+			end
 			return new_result.shared_probability
 		end
 	end
