@@ -6,14 +6,24 @@ local find_recipe = require("__fdsl__.lib.shared").find_recipe
 
 -------------------------------------------------------------------------- General
 
-local function find_tech(tech_name, required)
-	local technology = tech_name
-	if type(technology) == "string" then technology = data.raw.technology[tech_name] end
-	fds_assert.ensure_if(technology, required, "fds_technology.find: Required technology `%s` does not exist", tech_name)
+---Finds a technology with the given name, returning the prototype itself.
+---e.g: `local tech,tech_name = fds_technology.find("steel-processing", true)`
+---@param tech_in string|data.TechnologyPrototype Name of the tech to search for, or the technology itself.
+---@param required boolean? If this is true, an error will be thrown if the tech doesn't exist.
+---@return data.TechnologyPrototype? technology
+---@return string? tech_name Optionally get the tech_name back, for legacy purposes.
+local function find_tech(tech_in, required)
+	local technology = tech_in
+	if type(technology) == "string" then technology = data.raw.technology[tech_in] end
+	fds_assert.ensure_if(technology, required, "Required technology `%s` does not exist", tech_in)
 	return technology, (technology and technology.name)
 end
 fds_technology.find = find_tech
 
+---Finds all technologies with the given recipe unlock.
+---@param recipe_name string
+---@param required boolean? If this is true, an error will be thrown if no matching technologies are found.
+---@return data.TechnologyPrototype[] technologies
 function fds_technology.find_by_unlock(recipe_name, required)
 	local matches = {}
 	for _,technology in pairs(data.raw.technology) do
@@ -23,10 +33,14 @@ function fds_technology.find_by_unlock(recipe_name, required)
 			end
 		end
 	end
-	fds_assert.ensure_if(next(matches) ~= nil, required, "fds_technology.find_by_unlock: No technology with unlock `%s` exists when required", recipe_name)
+	fds_assert.ensure_if(next(matches) ~= nil, required, "No technology with unlock `%s` exists when required", recipe_name)
 	return matches
 end
 
+---Finds all technologies with the given prerequisite tech.
+---@param prereq_name string
+---@param required boolean? If true, an error will be thrown if no matching technologies are found.
+---@return data.TechnologyPrototype[] technologies
 function fds_technology.find_by_prereq(prereq_name, required)
 	local matches = {}
 	for _,technology in pairs(data.raw.technology) do
@@ -36,15 +50,53 @@ function fds_technology.find_by_prereq(prereq_name, required)
 			end
 		end
 	end
-	fds_assert.ensure_if(next(matches) ~= nil, required, "fds_technology.find_by_prereq: No technology with prerequisite `%s` exists when required", prereq_name)
+	fds_assert.ensure_if(next(matches) ~= nil, required, "No technology with prerequisite `%s` exists when required", prereq_name)
 	return matches
 end
 
 -------------------------------------------------------------------------- Technology modifying
 
--- merge_technology
+---Merges all effects from one technology into another technology, and optionally removes the original tech by hiding it and severing all connections.
+---The target technology will inherit all prerequisites and effects from the merged technology.
+---All technologies that had the merged technology as a prerequisite will be updated as well.
+---@param target_tech_in string|data.TechnologyPrototype
+---@param merge_tech_in string|data.TechnologyPrototype Technology that receives all effects from the first technology
+---@param remove_merged_tech boolean? Default true
+function fds_technology.merge_technology(target_tech_in, merge_tech_in, remove_merged_tech)
+	local merge_tech, merge_name = find_tech(merge_tech_in)
+	local target_tech, target_name = find_tech(target_tech_in)
+	if target_tech and merge_tech then
+		for _,effect in pairs(merge_tech.effects or {}) do
+			fds_technology.add_effect(target_tech, effect)
+		end
+		for _,prereq_name in pairs(merge_tech.prerequisites or {}) do
+			fds_technology.add_prereq(target_tech, prereq_name)
+		end
+		local child_techs = fds_technology.find_by_prereq(merge_name)
+		for _,child in pairs(child_techs) do
+			fds_technology.replace_prereq(child, merge_name, target_name)
+		end
+		if remove_merged_tech ~= false then
+			fds_technology.remove_technology(merge_tech)
+		end
+	end
+end
 
--- remove_technology ()
+---Removes all references to the given tech
+---@param tech_in string|data.TechnologyPrototype
+function fds_technology.remove_technology(tech_in)
+	local technology, tech_name = find_tech(tech_in)
+	if technology then
+		local child_techs = fds_technology.find_by_prereq(tech_name)
+		for _,child in pairs(child_techs) do
+			fds_technology.remove_prereq(child, tech_name)
+			for _,prereq in pairs(technology.prerequisites or {}) do
+				fds_technology.add_prereq(child, prereq)
+			end
+		end
+		technology.hidden = true
+	end
+end
 
 -------------------------------------------------------------------------- Prerequisites
 
@@ -111,6 +163,12 @@ function fds_technology.add_prereq(tech_in, prereq_in)
 	assert(prerequisite or not FDS_ASSERT)
 	if technology and prerequisite then
 		if technology.prerequisites then
+			-- Duplicate prerequisites are not allowed
+			for _,prereq in pairs(technology.prerequisites) do
+				if prereq == prereq_name then
+					return technology.prerequisites
+				end
+			end
 			table.insert(technology.prerequisites, prereq_name)
 		else
 			technology.prerequisites = {prereq_name}
@@ -127,6 +185,13 @@ function fds_technology.replace_prereq(tech_in, old_prereq_in, new_prereq_in)
 	if technology and prerequisite and technology.prerequisites then
 		for i,prereq in pairs(technology.prerequisites) do
 			if prereq == old_prereq_name then
+				-- Duplicate prerequisites are not allowed
+				for _,prereq in pairs(technology.prerequisites) do
+					if prereq == new_prereq_name then
+						table.remove(technology.prerequisites, i)
+						return true
+					end
+				end
 				technology.prerequisites[i] = new_prereq_name
 				return true
 			end
@@ -325,6 +390,22 @@ function fds_technology.remove_cost_ingredient(tech_in, pack_name)
 				return
 			end
 		end
+	end
+end
+
+function fds_technology.set_research_craft_item(tech_in, item_name, amount)
+	local technology, _ = find_tech(tech_in)
+	if technology and technology.research_trigger then
+		technology.unit = nil
+		technology.research_trigger = {type="craft-item", item=item_name, amount=amount}
+	end
+end
+
+function fds_technology.set_research_craft_fluid(tech_in, fluid_name, amount)
+	local technology, _ = find_tech(tech_in)
+	if technology and technology.research_trigger then
+		technology.unit = nil
+		technology.research_trigger = {type="craft-fluid", fluid=fluid_name, amount=amount}
 	end
 end
 

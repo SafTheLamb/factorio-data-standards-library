@@ -17,7 +17,7 @@ function fds_shared.find_recipe(recipe_in, required)
 		fds_assert.ensure(recipe.type == "recipe", "fds_shared.find_recipe: Provided table is not a RecipePrototype")
 	end
 	---@cast recipe data.RecipePrototype
-	fds_assert.ensure_if(recipe, required, "fds_shared.find_recipe: Required recipe `%s` is missing.", recipe_name)
+	fds_assert.ensure_if(recipe, required, "fds_shared.find_recipe: Required recipe `%s` is missing.", recipe_in)
 	return recipe, (recipe and recipe.name)
 end
 

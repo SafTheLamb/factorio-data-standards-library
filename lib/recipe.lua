@@ -313,10 +313,17 @@ end
 function fds_recipe.scale_ingredient(recipe_in, ingredient_name, scalars)
 	local _,ingredient = fds_recipe.get_ingredient(recipe_in, ingredient_name)
 	if ingredient then
-		for key,scalar in pairs(scalars) do
-			assert(type(scalar) == "number")
-			assert(type(ingredient[key]) == "number" or not FDS_ASSERT)
-			ingredient[key] = ingredient[key] * scalar
+		if type(scalars) == "number" then
+			if ingredient.amount then
+				ingredient.amount = ingredient.amount * scalars
+			end
+		else
+			for key,scalar in pairs(scalars) do
+				fds_assert.ensure(type(scalar) == "number", "fds_recipe.scale_ingredient: scalar `%s` is not a number.", key)
+				if type(ingredient[key]) == "number" then
+					ingredient[key] = ingredient[key] * scalar
+				end
+			end
 		end
 	end
 end
@@ -486,9 +493,11 @@ function fds_recipe.add_result(recipe_in, new_result, allow_combine, new_index)
 			else
 				table.insert(recipe.results, new_result)
 			end
-			return result
+			return true
 		end
+		return conflict
 	end
+	return false
 end
 
 -- Changes a set of variables on the given result.
@@ -497,27 +506,58 @@ end
 --  modifiers (dictionary of ProductPrototype values): Map of values to change. e.g. {amount=0, amount_min=0, amount_max=10}
 function fds_recipe.modify_result(recipe_in, result_name, modifiers)
 	assert(type(modifiers) == "table")
-	local _,result = fds_recipe.get_result(recipe_in, result_name)
 	local recipe, recipe_name = find_recipe(recipe_in)
+	local _,result = fds_recipe.get_result(recipe, result_name)
 	assert(result or not FDS_ASSERT, string.format("fds_recipe.modify_result: recipe `%s` does not have result `%s`.", recipe_name, result_name))
 	if result then
 		for key,val in pairs(modifiers) do
 			result[key] = val
-			return result
 		end
 	end
+	return result
 end
 
 -- 
 function fds_recipe.scale_result(recipe_in, result_name, scalars)
 	local _,result = fds_recipe.get_result(recipe_in, result_name)
 	if result then
-		for key,scalar in pairs(scalars) do
-			assert(type(scalar) == "number")
-			assert(type(result[key]) == "number" or not FDS_ASSERT)
-			result[key] = result[key] * scalar
-			return result
+		if type(scalars) == "number" then
+			if result.independent_probability then
+				local scaled_probability = result.independent_probability * scalars
+				if scaled_probability == 1 then
+					result.independent_probability = nil
+					return result
+				elseif scaled_probability < 1 then
+					result.independent_probability = scaled_probability
+					return result
+				end
+			end
+			for _,key in pairs({"amount", "amount-min", "amount-max"}) do
+				if type(result[key]) == "number" then
+					result[key] = result[key] * scalars
+				end
+			end
+		else
+			for key,scalar in pairs(scalars) do
+				assert(type(scalar) == "number")
+				assert(type(result[key]) == "number" or not FDS_ASSERT)
+				if result[key] then
+					result[key] = result[key] * scalar
+				end
+			end
 		end
+		return result
+	end
+end
+
+local function combine_results(target_result, merge_result)
+	assert(target_result and merge_result)
+	if target_result.amount_min or target_result.amount_max or merge_result.amount_min or merge_result.amount_max then
+		target_result.amount_min = (target_result.amount_min or target_result.amount or 0) + (merge_result.amount_min or merge_result.amount or 0)
+		target_result.amount_max = (target_result.amount_max or target_result.amount or 0) + (merge_result.amount_max or merge_result.amount or 0)
+		target_result.amount = nil
+	else
+		target_result.amount = (target_result.amount or 0) + (merge_result.amount or 0)
 	end
 end
 
@@ -528,24 +568,29 @@ end
 ---@param no_combine boolean? If false, will assert if an existing result conflicts with new_result. If FDS_ASSERT is set, allow_combine must be true to avoid assert.
 function fds_recipe.replace_result(recipe_in, old_result_name, new_result, no_combine)
 	local recipe, recipe_name = find_recipe(recipe_in)
-	if recipe then
+	if recipe and recipe_name then
 		local old_index,old_result = fds_recipe.get_result(recipe_in, old_result_name)
 		assert(not FDS_ASSERT or (type(old_result) == "table" and old_index ~= nil), string.format("fds_recipe.replace_result: recipe `%s` does not have result `%s`", recipe_name, old_result_name))
 
 		if old_index and old_result then
-			local is_full_replace = type(new_result) == "table"
-			local _,conflict = fds_recipe.get_result(recipe_name, is_full_replace and new_result.name or new_result)
+			local result_name = type(new_result) == "string" and new_result or new_result.name
+			local _,conflict = fds_recipe.get_result(recipe_name, result_name)
 
 			if conflict then
 				assert(no_combine ~= true and (no_combine == false or not FDS_ASSERT), string.format("fds_recipe.replace_result: recipe `%s` has a conflicting result `%s` that already exists", recipe_name, conflict.name))
-				conflict.amount = conflict.amount + (is_full_replace and new_result.amount or old_result.amount)
+				if type(new_result) == "table" then
+					combine_results(conflict, new_result)
+				else
+					combine_results(conflict, old_result)
+				end
 				table.remove(recipe.results, old_index)
 				return conflict
 			else
-				if is_full_replace then
+				if type(new_result) == "table" then
 					recipe.results[old_index] = new_result
 					return new_result
 				else
+					assert(type(new_result) == "string")
 					old_result.name = new_result
 					return old_result
 				end
