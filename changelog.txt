@@ -2,6 +2,9 @@
 Version: 0.5.3
 Date: ????
   Changes:
+    - Couple new functions that are WIP so shhhh don't use them yet
+  Bugfixes:
+    - Fix replace_result crashing when amount is not defined. Still needs more work, but this helps.
 ---------------------------------------------------------------------------------------------------
 Version: 0.5.2
 Date: 2026-09-12
