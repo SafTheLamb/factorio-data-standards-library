@@ -2,6 +2,8 @@
 Version: 0.5.4
 Date: ????
   Changes:
+    - NEW: fds_shared.are_surface_conditions_compatible
+    - NEW: fds_shared.make_surface_conditions_compatible
 ---------------------------------------------------------------------------------------------------
 Version: 0.5.3
 Date: 2026-09-24
