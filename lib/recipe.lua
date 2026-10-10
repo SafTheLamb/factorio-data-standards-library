@@ -202,7 +202,7 @@ end
 ------------------------------------------------------------------------------- Crafting time
 ---@section time
 
----Gets how long it takes to craft a recipe at crafting speed 1.
+---Gets how long it takes to craft a recipe by default.
 ---@param recipe_in string|data.RecipePrototype The recipe to check.
 ---@return number? energy_required The crafting time, if the recipe exists.
 function fds_recipe.get_time(recipe_in)
@@ -269,11 +269,12 @@ function fds_recipe.get_ingredient(recipe_in, ingredient_name)
 	return nil,nil
 end
 
--- Adds the provided ingredient to the given recipe.
---  recipe_in (RecipeID string OR table): Name of the recipe, (eg "iron-gear-wheel") or the recipe itself. Nothing happens if the recipe is not defined. Will assert if FDS_ASSERT is true.
---  new_ingredient (IngredientPrototype struct): IngredientPrototype to add.
---  allow_combine (optional, boolean): If false, will assert if a conflicting ingredient exists.
---  index (optional, int): If set and new_ingredient is unique, inserts the ingredient at this index.
+---Adds an ingredient to a recipe.
+---@param recipe_in string|data.RecipePrototype The recipe to modify.
+---@param new_ingredient data.ItemIngredientPrototype|data.FluidIngredientPrototype
+---@param allow_combine boolean? Unless explicitly set to false, the new ingredient will be combined with existing ingredients.
+---@param index integer? Index to insert the ingredient. Adds to the end if not specified.
+---@return boolean success
 function fds_recipe.add_ingredient(recipe_in, new_ingredient, allow_combine, index)
 	assert(type(new_ingredient) == "table", string.format("fds_recipe.add_ingredient: new_ingredient for `%s` must be an IngredientPrototype.", recipe_name))
 	local recipe, recipe_name = find_recipe(recipe_in)
@@ -281,22 +282,26 @@ function fds_recipe.add_ingredient(recipe_in, new_ingredient, allow_combine, ind
 	if recipe then
 		local _,conflict = fds_recipe.get_ingredient(recipe_in, new_ingredient.name)
 		if conflict then
-			assert(allow_combine ~= false, string.format("fds_recipe.replace_ingredient: recipe `%s` has a conflicting ingredient `%s` that already exists.", recipe_name, conflict.name))
-			conflict.amount = conflict.amount + new_ingredient.amount
+			if allow_combine ~= false then
+				conflict.amount = conflict.amount + new_ingredient.amount
+				return true
+			end
 		else
 			if type(index) == "number" then
 				table.insert(recipe.ingredients, index, new_ingredient)
 			else
 				table.insert(recipe.ingredients, new_ingredient)
 			end
+			return true
 		end
 	end
+	return true
 end
 
--- Changes a set of variables on the given ingredient.
---  recipe_in (RecipeID string OR table): Name of the recipe or the recipe itself.
---  ingredient_name (ItemID or FluidID string): Name of the ingredient.
---  modifiers (dictionary): Map of values to change. e.g. {amount=0, min_temperature=9999}
+---Change the properties of a recipe's ingredient.
+---@param recipe_in string|data.RecipePrototype The recipe to modify.
+---@param ingredient_name string Name of the ingredient to modify.
+---@param modifiers table List of properties to override, e.g: `{amount=1}`
 function fds_recipe.modify_ingredient(recipe_in, ingredient_name, modifiers)
 	assert(type(modifiers) == "table")
 	local recipe, recipe_name = find_recipe(recipe_in)
@@ -342,11 +347,13 @@ function fds_recipe.scale_ingredients(recipe_in, scalars)
 	end
 end
 
--- Adds the provided ingredient to the given recipe.
---  recipe_in (RecipeID string OR table): Name of the recipe, (eg "iron-gear-wheel") or the recipe itself. Nothing happens if the recipe is not defined. Will assert if FDS_ASSERT is true.
---  old_ingredient_name (ItemID or FluidID string): Name of ingredient to replace (eg "iron-plate")
---  new_ingredient (string or IngredientPrototype): Ingredient to replace with. If an IngredientPrototype is provided, replaces the whole thing. If a string, changes the ingredient name.
---  allow_combine (optional, boolean): If false, will assert if an existing ingredient conflicts with new_ingredient. If FDS_ASSERT is set, allow_combine must be true to avoid assert.
+---Replaces the existing ingredient for a recipe with a new one. Does nothing if the old ingredient does not exist.
+---If you want the new ingredient to still be added if the old ingredient does not exist, call `remove_ingredient` followed by `add_ingredient`.
+---@param recipe_in string|data.RecipePrototype The recipe to modify.
+---@param old_ingredient_name string Name of the old ingredient to replace.
+---@param new_ingredient string|data.IngredientPrototype Either the name of the new ingredient, or an entirely new ingredient definition. e.g: `"iron-plate"` or `{type="item", name="copper-plate", amount=1}`
+---@param no_combine boolean? If true, then will do nothing if the new ingredient already exists.
+---@return boolean success
 function fds_recipe.replace_ingredient(recipe_in, old_ingredient_name, new_ingredient, no_combine)
 	local recipe, recipe_name = find_recipe(recipe_in)
 	assert(recipe or not FDS_ASSERT, string.format("fds_recipe.replace_ingredient: recipe `%s` does not exist.", recipe_name))
@@ -359,27 +366,30 @@ function fds_recipe.replace_ingredient(recipe_in, old_ingredient_name, new_ingre
 			local _,conflict = fds_recipe.get_ingredient(recipe_in, is_full_replace and new_ingredient.name or new_ingredient)
 
 			if conflict then
-				assert(no_combine ~= true and (no_combine == false or not FDS_ASSERT), "fds_recipe.replace_ingredient: recipe `%s` has a conflicting ingredient `%s` that already exists.", recipe_name, conflict.name)
-				conflict.amount = conflict.amount + (is_full_replace and new_ingredient.amount or old_ingredient.amount)
-				table.remove(recipe.ingredients, old_index)
+				if no_combine ~= true then
+					conflict.amount = conflict.amount + (is_full_replace and new_ingredient.amount or old_ingredient.amount)
+					table.remove(recipe.ingredients, old_index)
+					return true
+				end
 			else
 				if is_full_replace then
 					recipe.ingredients[old_index] = new_ingredient
 				else
 					old_ingredient.name = new_ingredient
 				end
+				return true
 			end
 		end
 	end
+	return false
 end
 
--- Splits the old ingredient into the new set of ingredients.
---   recipe_in: Name of the recipe or the recipe itself.
---   old_ingredient_name (ItemID or FluidID string): Name of the ingredient to split.
---   new_ingredients (table of strings and/or [string]=value pairs): Names of the ingredients to split the given ingredient into.
---     Entries that are a string key and number value use the number specified as the split factor (% with range [0,1]).
---     The original ingredient CAN be included in this.
---   allow_combine (optional, boolean)
+---Splits the old ingredient into the new set of ingredients.
+---@param recipe_in string|data.RecipePrototype The recipe to modify.
+---@param old_ingredient_name string Name of the ingredient to split.
+---@param new_ingredients string[]|table<string,number> List of new ingredients, optionally with split amount. The old ingredient CAN be included. e.g. `{["iron-plate"]=0.5, ["copper-plate"]=0.5}`.
+---Split amount is not a weight, but instead a scale on the ingredient amount.
+---@param no_combine boolean?
 function fds_recipe.split_ingredient(recipe_in, old_ingredient_name, new_ingredients, no_combine)
 	local recipe, recipe_name = find_recipe(recipe_in)
 	assert(recipe or not FDS_ASSERT, string.format("fds_recipe.split_ingredient: recipe `%s` does not exist.", recipe_name))
@@ -430,9 +440,10 @@ function fds_recipe.split_ingredient(recipe_in, old_ingredient_name, new_ingredi
 	end
 end
 
--- Removes the provided ingredient from the given recipe.
---  recipe_in (RecipeID string OR table): Name of the recipe (eg "iron-gear-wheel") or the recipe itself. Nothing happens if the recipe is not defined. Will assert if FDS_ASSERT is true.
---  ingredient_name (ItemID or FluidID string): Name of the ingredient to remove.
+---Removes the provided ingredient from the given recipe.
+---@param recipe_in string|data.RecipePrototype The recipe to modify.
+---@param ingredient_name string Name of the ingredient to remove.
+---@return boolean success Returns true if the ingredieent was found and removed.
 function fds_recipe.remove_ingredient(recipe_in, ingredient_name)
 	local recipe, recipe_name = find_recipe(recipe_in)
 	assert(recipe or not FDS_ASSERT, string.format("fds_recipe.remove_ingredient: recipe `%s` does not exist.", recipe_name))
