@@ -70,7 +70,7 @@ end
 
 ---Checks whether the recipe has the given crafting category.
 ---@param recipe_in string|data.RecipePrototype The recipe to check.
----@param category_name string Name of the category to check.
+---@param category_name string Name of the category to search for.
 ---@return boolean has_category Returns true if the recipe has the given crafting category.
 function fds_recipe.has_category(recipe_in, category_name)
 	local recipe = find_recipe(recipe_in)
@@ -269,9 +269,17 @@ function fds_recipe.get_ingredient(recipe_in, ingredient_name)
 	return nil,nil
 end
 
----Adds an ingredient to a recipe.
+---Adds an ingredient to a recipe. Specify the ingredient in its standard format.
+---If the ingredient already exists, 
+---
+---**Example:**
+---```lua
+---local frep = require("__fdsl__.lib.recipe")
+---frep.add_ingredient("assembling-machine-3", {type="fluid", name="lubricant", amount=10}) -- Adds 10 lubricant
+---frep.add_ingredient("assembling-machine-3", {type="item", name="speed-module", amount=1}) -- Increases speed module cost from 4 to 5
+---```
 ---@param recipe_in string|data.RecipePrototype The recipe to modify.
----@param new_ingredient data.ItemIngredientPrototype|data.FluidIngredientPrototype
+---@param new_ingredient data.ItemIngredientPrototype|data.FluidIngredientPrototype The ingredient to add, as a prototype.
 ---@param allow_combine boolean? Unless explicitly set to false, the new ingredient will be combined with existing ingredients.
 ---@param index integer? Index to insert the ingredient. Adds to the end if not specified.
 ---@return boolean success
@@ -299,6 +307,14 @@ function fds_recipe.add_ingredient(recipe_in, new_ingredient, allow_combine, ind
 end
 
 ---Change the properties of a recipe's ingredient.
+---Will work on properties that were previously missing.
+---
+---**Example:**
+---```lua
+---local frep = require("__fdsl__.lib.recipe")
+---frep.modify_ingredient("steel-plate", "iron-plate", {amount=20}) -- Changes iron plate cost to 20
+---frep.modify_ingredient("heavy-oil-cracking", "heavy-oil", {minimum_temperature = 100}) -- Sets minimum temperature to 100
+---```
 ---@param recipe_in string|data.RecipePrototype The recipe to modify.
 ---@param ingredient_name string Name of the ingredient to modify.
 ---@param modifiers table List of properties to override, e.g: `{amount=1}`
@@ -314,7 +330,18 @@ function fds_recipe.modify_ingredient(recipe_in, ingredient_name, modifiers)
 	end
 end
 
--- 
+---Scales the properties of a recipe's ingredient.
+---Does nothing if the property is not already defined.
+---
+---**Example:**
+---```lua
+---local frep = require("__fdsl__.lib.recipe")
+---frep.scale_ingredient("electronic-circuit", "copper-cable", {amount=2}) -- Changes copper cable cost from 3 to 6
+---frep.scale_ingredient("light-oil-cracking", "light-oil", {minimum_temperature=0.5}) -- Does nothing
+---```
+---@param recipe_in any
+---@param ingredient_name any
+---@param scalars any
 function fds_recipe.scale_ingredient(recipe_in, ingredient_name, scalars)
 	local _,ingredient = fds_recipe.get_ingredient(recipe_in, ingredient_name)
 	if ingredient then
@@ -511,10 +538,15 @@ function fds_recipe.add_result(recipe_in, new_result, allow_combine, new_index)
 	return false
 end
 
--- Changes a set of variables on the given result.
+-- Changes a set of properties on the given result of a recipe.
 --  recipe_in (RecipeID string OR table): Name of the recipe or the recipe itself.
 --  result_name (ItemID or FluidID string): Name of the result.
 --  modifiers (dictionary of ProductPrototype values): Map of values to change. e.g. {amount=0, amount_min=0, amount_max=10}
+---Changes a set of properties on the given result of a recipe.
+---@param recipe_in string|data.RecipePrototype
+---@param result_name string
+---@param modifiers any
+---@return (data.FluidProductPrototype|data.ItemProductPrototype)?
 function fds_recipe.modify_result(recipe_in, result_name, modifiers)
 	assert(type(modifiers) == "table")
 	local recipe, recipe_name = find_recipe(recipe_in)
@@ -528,7 +560,11 @@ function fds_recipe.modify_result(recipe_in, result_name, modifiers)
 	return result
 end
 
--- 
+---Scales the set of properties on the given result of a recipe.
+---@param recipe_in any
+---@param result_name any
+---@param scalars any
+---@return data.FluidProductPrototype|data.ItemProductPrototype|nil
 function fds_recipe.scale_result(recipe_in, result_name, scalars)
 	local _,result = fds_recipe.get_result(recipe_in, result_name)
 	if result then
@@ -559,6 +595,7 @@ function fds_recipe.scale_result(recipe_in, result_name, scalars)
 		end
 		return result
 	end
+	return nil
 end
 
 local function combine_results(target_result, merge_result)
